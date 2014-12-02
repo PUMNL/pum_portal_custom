@@ -1,0 +1,14 @@
+<?php
+
+function pum_portal_webform_help_preprocess_page(&$vars) 
+{
+    // Global node.
+    $node = menu_get_object();
+
+    if (!empty($node) && $node->type == 'webform' && arg(2) === null) {
+        $path = drupal_get_path('module', 'pum_portal_webform_help');
+        drupal_add_js($path . '/ppwh.js');
+        drupal_add_css($path . '/ppwh.css');
+
+    }
+}

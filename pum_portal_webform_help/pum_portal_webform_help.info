@@ -1,0 +1,6 @@
+name = PUM Portal Webform Help
+description = webform help option
+package = PUM
+core = 7.x
+version = "7.x-1.0"
+project = pum_portal_webform_help

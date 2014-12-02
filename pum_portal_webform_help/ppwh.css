@@ -1,0 +1,22 @@
+code.help {
+  background-color:inherit;
+  font-family: inherit;
+  padding: inherit;
+  position:relative;
+}
+
+code.help span.helpbutton {
+  background: url('help.png') no-repeat 0 0;
+  padding: 10px 0 0 26px;
+  cursor: help;
+}
+code.help div {
+  display:none;
+  position: absolute;
+  top: 0;
+  left: 26px;
+  background-color: #000000;
+  color: #ffffff;
+  border: 1px solid red;
+  padding: 5px;
+}
