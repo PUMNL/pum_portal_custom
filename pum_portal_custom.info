@@ -1,0 +1,6 @@
+name = PUM Portal Custom
+description = Custom changes for PUM Portal
+package = PUM
+core = 7.x
+version = "7.x-1.0"
+project = pum_portal_custom

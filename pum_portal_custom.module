@@ -1,0 +1,712 @@
+<?php
+
+
+//Get a default taxonomy item for node_add
+
+function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
+//  print $form_id;
+  if ($form_id == "pum_forum_item_node_form" || $form_id == "pum_portal_blog_node_form" || $form_id == "pum_portal_document_node_form" || $form_id == "pum_portal_news_node_form"){
+//     print_r($form['field_pum_country']);
+     
+     
+     $field = 'field_pum_country';
+     $value = isset($_GET["term"])? intval($_GET["term"]) : 0;
+ 
+     foreach ($form as $fieldname => $field)
+     {
+        if (substr_compare($fieldname, "field_pum", 0, 9) == 0){
+          if (is_array($field['und']['#default_value']) && is_array($field['und']['#options']) && $value > 0) {
+            if (array_key_exists($value, $field['und']['#options'])) {
+              $form[$fieldname]['und']['#default_value'] = array($value); 
+            } 
+          }
+        }
+        if (substr_compare($fieldname, "field_pum_private", 0) == 0){
+
+          $form[$fieldname]['#disabled'] = TRUE;                                                                                                                                 
+          isset($form[$fieldname]['#attributes']['style'])?$form[$fieldname]['#attributes']['style'] .= "display:none;":$form[$fieldname]['#attributes']['style']="display:none"; 
+        }
+
+    }
+   //Add check for required fields
+    $form['#validate'][] = '_pum_portal_custom_required_fields';
+  }
+
+  if ($form_id = "user_profile_form"){
+    foreach ($form as $fieldname => $field){
+
+      if (substr_compare($fieldname, "field_pum_private", 0) == 0){
+
+        $form[$fieldname]['#disabled'] = TRUE;
+        isset($form[$fieldname]['#attributes']['style'])?$form[$fieldname]['#attributes']['style'] .= "display:none;":$form[$fieldname]['#attributes']['style']="display:none";
+      }
+    }
+  }
+
+}
+
+//*One of the pum_portal fields is required*//
+function _pum_portal_custom_required_fields($form, &$form_state) {
+//    form_set_error('title', "validate".print_r($form_state["values"],true));
+      $country = isset($form_state["values"]["field_pum_country"]["und"][0]["tid"])?$form_state["values"]["field_pum_country"]["und"][0]["tid"]:0;
+      $sector = isset($form_state["values"]["field_pum_sector"]["und"][0]["tid"])?$form_state["values"]["field_pum_sector"]["und"][0]["tid"]:0;
+      $generic =  isset($form_state["values"]["field_pum_generic"]["und"][0]["tid"])?$form_state["values"]["field_pum_generic"]["und"][0]["tid"]:0;
+      $private =  isset($form_state["values"]["field_pum_country"]["und"][0]["tid"])?$form_state["values"]["field_pum_country"]["und"][0]["tid"]:0; isset($form_state["values"]["field_pum_private"]["und"][0]["tid"])?$form_state["values"]["field_pum_private"]["und"][0]["tid"]:0;
+
+      if ($country <= 0 && $sector <= 0 && $generic <=0 && $private <=0){
+          form_set_error('field_pum_country', "At least one of the Community fields is required: Country, Sector, Generic");
+      }
+}
+
+
+
+/**
+ * Implements hook_menu().
+ * Sync settings page
+ */
+function pum_portal_custom_menu() {
+  $items['admin/config/system/pum_sync'] = array(
+    'title' => 'Portal sync settings',
+    'description' => 'Pum Portal Sync Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_pum_sync_settings_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}
+
+function _pum_sync_settings_form ($form, &$form_state){
+
+ $form['high_school']['tests_taken'] = array(
+    '#type' => 'checkboxes',
+    '#options' => array("countries" => "countries", "sections" => "sections"),
+    '#title' => t('What pum settings need to be synced '),
+    '#required' => TRUE,
+  );
+
+  $form['force'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Force reread.'),
+  );
+
+
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  return $form;
+}
+
+function _pum_sync_settings_form_submit($form, &$form_state) {
+  // Submission logic.
+  
+   $msg="";
+   $force = $form_state["values"]["force"] == "1"? true: false;
+   $msg .= print_r($form_state["values"],true);
+
+   if ( strcmp($form_state["values"]["tests_taken"]["countries"],"countries")===0) {$msg .="countries: ".$form_state["values"]["tests_taken"]["countries"] ;  _pum_portal_custom_sync_countries(false, $force); }
+
+   if ( strcmp($form_state["values"]["tests_taken"]["sections"],"sections") ===0) { $msg .= " sections: ".$form_state["values"]["tests_taken"]["sections"]; _pum_portal_custom_sync_sectors(false, $force); }
+   
+//   drupal_set_message( $msg );
+}
+
+function _pum_portal_custom_sync_countries($cron = false, $force = false)
+{
+  $ret = "";
+  civicrm_initialize( );
+// get all countries
+  $params = Array (
+      'version' => 3,
+      'sequential' => 1,
+      'options' => array('limit' => 1000),
+  );
+  $result = civicrm_api('Country', 'get', $params);
+
+//get country flag
+
+//get country coordinators
+
+  $params = array(
+    'version' => 3,
+    'sequential' => 1,
+    'name' => 'civicrm_country_id',
+  );
+  $resultcustom_field = civicrm_api('CustomField', 'get', $params);
+
+  $country_id_field="custom_".$resultcustom_field["id"];
+
+  $params = array(
+    'version' => 3,
+    'sequential' => 1,
+    'contact_sub_type' => 'country',
+    'options' => array('limit' => 1000),
+    'return' => $country_id_field,
+  );
+  $resultcountrycontacts = civicrm_api('Contact', 'get', $params);
+
+  $params = array(
+    'version' => 3,
+    'sequential' => 1,
+    'name_a_b' => 'Country Coordinator is',
+  );
+  $resultreltype = civicrm_api('RelationshipType', 'get', $params);
+
+  $params = array(
+    'version' => 3,
+    'sequential' => 1,
+    'is_active' => 1,
+    'relationship_type_id' => $resultreltype["values"][0]["id"],
+    'options' => array('limit' => 10000),
+  );
+  $resultwithcoordinator = civicrm_api('Relationship', 'get', $params);
+
+// check with md5 hash
+   $md5tot = md5(print_r($result,true).print_r($resultcountrycontacts,true).print_r($resultwithcoordinator,true));
+
+   $md5db = variable_get("pum_md5_country", "");
+  
+   if ($md5tot == $md5db && !$force){
+     watchdog("pum", "countries the same");
+     if(!$cron) drupal_set_message("countries the same");
+   }
+   else{
+      watchdog("pum", "countries updated");
+      if(!$cron) drupal_set_message("countries updated");
+
+
+//if different do loop per country
+//  $ret = print_r($result,true);
+
+    $voc = taxonomy_vocabulary_machine_name_load("countries");
+
+    if ($result["is_error"] == "0"){
+      foreach($result["values"] as $country){
+        $c_id = null;
+        $cc_id = null;
+      //get country_contact_id
+
+        foreach ($resultcountrycontacts["values"] as $countrycontact){
+          if (isset($countrycontact[$country_id_field]) && $countrycontact[$country_id_field] == $country["id"] ) { $c_id = $countrycontact["id"]; break; }
+        }
+        if ($c_id) {
+      
+        //if active coordinator:
+          foreach ($resultwithcoordinator["values"] as $countrycoordinator){
+            if ($countrycoordinator["contact_id_a"] == $c_id ) { $cc_id = $countrycoordinator["contact_id_b"]; break; }
+          }
+
+        }
+
+        if (isset($cc_id)) {
+          $terms=taxonomy_get_term_by_name($country["name"],"countries"); 
+          if (count($terms) > 0) {
+            $term = array_shift($terms);
+          }else {
+            $term = new stdClass();;
+            $term->name = $country["name"];
+          }
+          $term->vid = $voc->vid;
+          $term->field_country_id["und"][0]["value"] = $country["id"];
+          taxonomy_term_save($term);
+        }
+
+
+      }
+ 
+    }
+    variable_set("pum_md5_country", $md5tot);
+
+  }
+  if (!$cron) return $ret;
+}
+///
+function pum_portal_custom_cron() {
+
+
+ _pum_portal_custom_sync_countries(true);
+ _pum_portal_custom_sync_sectors(true);
+
+}
+
+function _pum_portal_custom_sync_sectors($cron = false, $force = false){
+  civicrm_initialize( );
+
+  $params = array(
+    'version' => 3,
+    'sequential' => 1,
+    'is_active' => 1,
+    'options' => Array("limit" => 1000),
+  );
+  $resultsectors = civicrm_api('TagEnhanced', 'get', $params);
+
+//  drupal_set_message($resultsectors);
+
+  $params = array(
+    'version' => 3,
+    'sequential' => 0,
+//    'is_active' => 1,
+    'options' => Array("limit" => 10000),
+  );
+  $resulttags = civicrm_api('Tag', 'get', $params);
+
+//  drupal_set_message($resulttags);
+
+// check with md5 hash
+   $md5tot = md5(print_r($resultsectors,true).print_r($resulttags,true));
+
+   $md5db = variable_get("pum_md5_sector", "");
+  
+   if ($md5tot == $md5db  && !$force){
+     watchdog("pum", "sections the same");
+     if(!$cron) drupal_set_message("sections the same");
+   }
+   else{
+      watchdog("pum", "sections updated");
+      if(!$cron) drupal_set_message("sections updated");
+ 
+ 
+    $voc = taxonomy_vocabulary_machine_name_load("sector");
+
+    if ($resultsectors["is_error"] == "0"){
+    //get Sector parent tag
+      $sector_tag_id=-1;
+      if (isset($resulttags["values"])) foreach($resulttags["values"] as $tagid => $tag){
+         if ($tag["name"]=="Sector") $sector_tag_id = $tagid;  
+      }
+
+      foreach($resultsectors["values"] as $sector){
+
+        $c_tag = $resulttags["values"][$sector["tag_id"]];
+
+        if (isset($c_tag) && isset($c_tag["parent_id"]) && $c_tag["parent_id"]==$sector_tag_id) {
+           $c_tag_name = htmlspecialchars_decode($c_tag["name"]);
+          $terms=taxonomy_get_term_by_name($c_tag_name,"sector"); 
+          if (count($terms) > 0) {
+            $term = array_shift($terms);
+          }else {
+            $terms=taxonomy_get_term_by_name($c_tag["name"],"sector"); 
+            if (count($terms) > 0) {
+              $term = array_shift($terms);
+            } else {
+              $term = new stdClass();
+            }
+            $term->name = $c_tag_name;
+          }
+          $term->vid = $voc->vid;
+          $term->field_pum_tag_id["und"][0]["value"] = $sector["tag_id"];
+          $term->field_pum_coordinator_id["und"][0]["value"]  = $sector["coordinator_id"];
+          taxonomy_term_save($term);
+        }
+
+
+      }
+ 
+    }
+      
+
+
+      variable_set("pum_md5_sector", $md5tot);
+
+
+   }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function pum_portal_custom_block_info() {
+  $blocks = array();
+  $blocks['pum_term_subscription'] = array(
+    'info' => t('Pum Term Subscription'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function pum_portal_custom_block_view($delta = '') {
+  $block = array();
+  switch ($delta) {
+    case 'pum_term_subscription':
+        $block['subject'] = t('Subscribe');
+        $block['content'] = _pum_portal_subscription();
+      break;
+  }
+  return $block;
+}
+
+
+function _pum_portal_subscription(){
+   $term = array();
+// are we on term page??
+   $term[0] = menu_get_object('taxonomy_term', 2);
+   if (!isset($term[0]->tid)) {
+   // Try to get it without menu_get_object().
+     if (arg(0) == 'taxonomy' && arg(1) == 'term' && arg(2)) {
+       $term[0] = taxonomy_term_load(arg(2));
+     }
+  }
+
+ if (!(isset($term[0]) && is_object($term[0]))) {
+   $term = array();
+  
+//are we on a node page with terms?
+   $node = menu_get_object();
+   $tids=array();
+   if (is_object($node)) foreach ($node as $fieldname => $fieldvalue){
+     if (substr_compare($fieldname, "field_pum_", 0,10)==0) {
+
+        if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])){
+            foreach($fieldvalue["und"] as $vals){
+              if (isset($vals["tid"]))  $term[]=$vals["taxonomy_term"];
+            }
+        }
+     }
+   }
+  }
+  //if no terms are found: return empty block
+  if (!(isset($term[0]) && is_object($term[0]))) return;
+   
+  return drupal_get_form("_pum_portal_subscription_form", $term);
+}
+
+
+function _pum_portal_subscription_form($form, &$form_state){
+
+   $term = $form_state['build_info']['args'][0];
+
+//user subscribed terms
+  global $user;
+  $account = user_load($user->uid);
+  $tids=array();
+  foreach ($account as $fieldname => $fieldvalue){
+    if (substr_compare($fieldname, "field_", 0,6)==0) {
+        if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])){
+            foreach($fieldvalue["und"] as $vals){
+              if (isset($vals["tid"])) $tids[$vals["tid"]]=$vals["tid"];
+            }
+        }
+    }
+  }
+ 
+
+  if (isset($term[0]) && is_object($term[0])) {
+    foreach ($term as $t){
+      $form['subscribe']['subscribe_'.$t->tid] = array(
+        '#type' => 'checkbox',
+        '#title' => $t->name,
+        '#default_value' => isset($tids[$t->tid])?1:0,
+      );
+    }
+  
+    
+
+    $form['actions'] = array('#type' => 'actions');
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+    );
+    return $form;
+
+
+  }
+  else {
+   return false;
+  }
+
+}
+
+function _pum_portal_subscription_form_submit($form, &$form_state){
+  $msg = "";
+  //get values and default values, when changed: do something
+
+  $term = $form_state['build_info']['args'][0];
+  
+ // $msg .= print_r($term,true);
+
+  global $user;
+  $account = user_load($user->uid);
+  $accountchanged = false;
+  $tids=array();
+  
+//  $msg .= print_r($account,true);
+  foreach ($account as $fieldname => $fieldvalue){
+    if (substr_compare($fieldname, "field_", 0,6)==0) {
+    //    $msg .= $fieldname.": ".print_r($fieldvalue,true);
+        if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])){
+            foreach($fieldvalue["und"] as $vals){
+              if (isset($vals["tid"])) $tids[$vals["tid"]]=$vals["tid"];
+            }
+        }
+    }
+  }
+
+   $account_edit = array();
+   $account_edit["field_pum_country"] = $account->field_pum_country;
+   $account_edit["field_pum_sector"] = $account->field_pum_sector;
+   $account_edit["field_pum_generic"] = $account->field_pum_generic;
+   $account_edit["field_pum_private"] = $account->field_pum_private;
+ 
+
+
+   foreach($form_state["values"] as $name => $value){
+  //    $msg .= " ".$name." :".print_r($value,true);
+      if (strpos($name, "subscribe_") === 0){
+        $tid = str_replace("subscribe_","", $name);
+        $voc = "";
+        foreach($term as $t)
+        {
+            if ($t->tid == $tid) {
+               $voc = $t->vocabulary_machine_name;
+
+               if ($voc == "countries") $fieldname = "field_pum_country";                                                                                                   
+               elseif ($voc == "pum_generic") $fieldname = "field_pum_generic";                                                                                             
+               elseif ($voc == "sector") $fieldname = "field_pum_sector";
+               else continue;
+               
+              
+               if ($value == 1) { //add if not active
+
+                   $found = false;
+                   if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
+                         if ($val["tid"] == $tid) $found = true;
+                   }
+                   if (!$found) {
+                        if (!isset($account_edit[$fieldname]["und"])) $account_edit[$fieldname]["und"] = array();
+                        $account_edit[$fieldname]["und"][]=array("tid" => $tid);
+                        $accountchanged = true;
+                   }
+               }
+               else { //delete if active
+                   $found = false;
+                   $foundnr = -1;
+                   if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
+                         if ($val["tid"] == $tid) { 
+                             $found = true;
+                             $foundnr = $nr;
+                         }
+                   }
+                   if ($found) {
+			array_splice($account_edit[$fieldname]["und"],$foundnr,1);
+                        $accountchanged = true;
+                   }
+
+               }
+
+               
+            }
+        }
+     //   $msg .= " ".$voc." ".$tid." :".$value;
+     //   $msg .= "user after:".print_r($account_edit,true);
+
+   // get user ,change only this tid, save user
+      }
+
+   }
+   if ($accountchanged) {
+
+     user_save($account, $account_edit);
+     $msg ="Subscriptions updated";
+   }
+   drupal_set_message( $msg );
+}
+
+/*
+* make  sure nodes pum_portal nodes are only viewable by people with the right permissions
+*
+*/
+function pum_portal_custom_node_grants_alter(&$grants, $account, $op){
+
+  if ($account->uid == 0){
+     $i = 0;
+     foreach ($grants as $gid => $grant){
+         if ($gid == "abt_field_pum_private"){
+           //  watchdog("debug" , "ppcnga".print_r($grant,true));
+             array_splice($grants, $i, 1);             
+         }
+         $i++;
+     }
+  }
+
+}
+
+
+
+function pum_portal_custom_action_info() {
+  return array(
+    'pum_portal_custom_add_taxonomy_item' => array(
+      'type' => 'user',
+      'label' => t('Add community to users'),
+      'behavior' => array('changes_property'),
+      'configurable' => FALSE,
+      'vbo_configurable' => FALSE,
+      'triggers' => array('any'),
+      'pass rows' => TRUE,
+    ),
+    'pum_portal_custom_delete_taxonomy_item' => array(
+      'type' => 'user',
+      'label' => t('Delete community from users'),
+      'behavior' => array('changes_property'),
+      'configurable' => FALSE,
+      'vbo_configurable' => FALSE,
+      'triggers' => array('any'),
+      'pass rows' => TRUE,
+    ),
+  );
+}
+
+
+function pum_portal_custom_delete_taxonomy_item(&$user, $context) {
+  if (isset($context["view_info"]["arguments"][0])) {
+    $term = $context["view_info"]["arguments"][0]?$context["view_info"]["arguments"][0]:-1;
+    $oterm = taxonomy_term_load($term);
+
+    $account_edit = array();
+
+    $fieldname = "field_pum_private";
+    $account_edit[$fieldname] = $user->field_pum_private;
+
+    if (!isset($account_edit[$fieldname]) ||
+       !isset($account_edit[$fieldname]["und"]))
+    $account_edit[$fieldname]["und"] = array();
+
+    $found = false;
+    $foundnr = -1;
+    $accountchanged=false;
+    if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
+      if ($val["tid"] == $term) { 
+        $found = true;
+        $foundnr = $nr;
+      }
+    }
+    if ($found) {
+      array_splice($account_edit[$fieldname]["und"],$foundnr,1);
+      $accountchanged = true;
+    }
+    if ($accountchanged) {
+
+      user_save($user, $account_edit);
+    //  $msg ="Subscriptions updated";
+    }
+
+  }
+}
+
+function pum_portal_custom_add_taxonomy_item(&$user, $context) {
+
+  if (isset($context["view_info"]["arguments"][0])) {  
+    $term = $context["view_info"]["arguments"][0]?$context["view_info"]["arguments"][0]:-1;
+    $oterm = taxonomy_term_load($term);
+
+    $account_edit = array();
+
+    $fieldname = "field_pum_private";   
+    $account_edit[$fieldname] = $user->field_pum_private;
+
+    if ($oterm->vocabulary_machine_name == "pum_generic") { 
+       $fieldname="field_pum_generic";
+       $account_edit[$fieldname] = $user->field_pum_generic;
+    }
+
+    if (!isset($account_edit[$fieldname]) || 
+       !isset($account_edit[$fieldname]["und"])) 
+    $account_edit[$fieldname]["und"] = array();
+
+    $found = false;
+    if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
+      if ($val["tid"] == $term) $found = true;
+    }
+    if (!$found) {
+      if (!isset($account_edit[$fieldname]["und"])) $account_edit[$fieldname]["und"] = array();
+      $account_edit[$fieldname]["und"][]=array("tid" => $term);
+      $accountchanged = true;
+    }  
+
+    if ($accountchanged) {
+
+     user_save($user, $account_edit);
+   //  $msg ="Subscriptions updated";
+   }
+
+ 
+
+  }
+}
+
+//*hook_civicrm_post
+
+function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef)
+{
+   if ($objectName == "EntityTag" && ($op == "create" || $op == "delete")){
+      $tagid = $objectId;
+      //load tag
+      $params = array(
+        'version' => 3,
+        'sequential' => 1,
+        'id' => $tagid,
+      );
+      $resulttag = civicrm_api('Tag', 'getsingle', $params);
+
+      $params = array(
+        'version' => 3,
+        'sequential' => 1,
+        'name' => 'sector',
+      );
+      $resultsectortag = civicrm_api('Tag', 'get', $params);
+      $sectortagid = $resultsectortag["id"];
+
+      if (isset($resulttag["parent_id"]) && $resulttag["parent_id"] == $sectortagid){
+ 
+      //if sector:
+        $cid = 0;
+        if (is_array($objectRef[0]) && isset($objectRef[0][0])) $cid = $objectRef[0][0]; 
+
+
+        //get taxonomy term
+        $query = new EntityFieldQuery();
+        $query->entityCondition('entity_type', 'taxonomy_term')
+        ->fieldCondition('field_pum_tag_id', 'value', $resulttag["id"], '=');
+        $result = $query->execute();
+        $tids = array_keys($result['taxonomy_term']);
+        //expect only one
+        $tid = 0;
+        if (isset($tids[0])) $tid =$tids[0];   
+
+
+        //load contact, get $uid
+        $params = array(
+          'version' => 3,
+          'sequential' => 1,
+          'contact_id' => 458,
+        );
+        $resultufm = civicrm_api('UFMatch', 'getsingle', $params);  
+    
+        $uid = -1;
+ 
+        if (isset($resultufm["uf_id"])) $uid = $resultufm["uf_id"];
+
+        if ($tid > 0 && $uid > 0) {
+          $account = user_load($uid);
+          $account_edit = array();
+
+          if ($op == "create"){ //add
+            $account_edit["field_pum_user_sector"]["und"][]=array("tid" => $tid);
+
+            user_save($account, $account_edit);
+
+          }
+          elseif($op == "delete") { //only delete if item is in field
+            $account_edit["field_pum_user_sector"]["und"]=array();           
+
+            user_save($account, $account_edit);
+          }
+//          watchdog("debug", "EntityTag:".$op."  ".$tagid." ".$cid. print_r($tids,true));
+        }
+      }
+   }
+}
+
