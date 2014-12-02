@@ -1,2 +1,2 @@
-nl.pum.pum_portal_custom
+pum_portal_custom
 ========================
