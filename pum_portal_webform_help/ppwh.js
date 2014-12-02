@@ -4,7 +4,7 @@
     attach: function (context, settings) {
 
       $('code.help', context).each(function () {
-        var p = $(this).parent().parent().find("label");
+        var p = $(this).parent().parent().children("label");
         $(this).html("<span class='helpbutton'>&nbsp</span><div>"+$(this).text()+"</div>");
         $(this).appendTo(p);
       });
