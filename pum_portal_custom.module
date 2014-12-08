@@ -72,6 +72,13 @@ function pum_portal_custom_menu() {
     'page arguments' => array('_pum_sync_settings_form'),
     'access arguments' => array('administer site configuration'),
   );
+  $items['admin/config/system/pum_mail'] = array(
+    'title' => 'Portal mail',
+    'description' => 'Pum mail test',
+    'page callback' => '_pum_portal_custom_digest',
+    'page arguments' => array('1'),
+    'access arguments' => array('administer site configuration'),
+  );
   return $items;
 }
 
@@ -709,4 +716,110 @@ function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef
       }
    }
 }
+
+function _pum_portal_custom_digest($uid=1,$days=5){
+  $ret = "";
+  if (is_numeric($uid)){
+    $user = user_load($uid);
+    $sectorfield = $user->field_pum_sector;
+    $countryfield = $user->field_pum_country;
+    $genericfield = $user->field_pum_generic;
+    $privatefield = $user->field_pum_private;
+
+    $usertags = array();
+
+    if (isset($sectorfield["und"]) && is_array($sectorfield["und"])){
+       foreach($sectorfield["und"] as $vals){
+           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+       }
+    }
+    if (isset($countryfield["und"]) && is_array($countryfield["und"])){
+       foreach($countryfield["und"] as $vals){
+           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+       }
+    }
+    if (isset($genericfield["und"]) && is_array($genericfield["und"])){
+       foreach($genericfield["und"] as $vals){
+           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+       }
+    }
+    if (isset($privatefield["und"]) && is_array($privatefield["und"])){
+       foreach($privatefield["und"] as $vals){
+           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+       }
+    }
+
+
+    if (count($usertags) > 0){
+/*      $view = views_get_view('my_latest_forum_topics_test');
+      $view->set_display('Page');
+      $view->set_arguments(array(implode("+",$usertags)));
+  // change the amount of items to show
+      $view->set_items_per_page(4);
+      $view->pre_execute();
+      $view->execute();
+//      $ret .= "v:".$view->render();
+     
+      $ret .= print_r(views_embed_view('my_blog','default',array(9)),true);
+*/
+      
+      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+
+      $query = new EntityFieldQuery();
+      $entities1 = $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('status', '1')
+      ->propertyCondition('created', $days_ago, '>')
+      ->fieldCondition('field_pum_country', 'tid', $usertags, 'IN')
+      ->addMetaData('account', user_load(1))
+      ->execute();
+      $query = new EntityFieldQuery();
+      $entities2 = $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('status', '1')
+      ->propertyCondition('created', $days_ago, '>')
+      ->fieldCondition('field_pum_sector', 'tid', $usertags, 'IN')
+      ->addMetaData('account', user_load(1))
+      ->execute();
+      $query = new EntityFieldQuery();
+      $entities3 = $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('status', '1')
+      ->propertyCondition('created', $days_ago, '>')
+      ->fieldCondition('field_pum_generic', 'tid', $usertags, 'IN')
+      ->addMetaData('account', user_load(1))
+      ->execute();
+      $query = new EntityFieldQuery();
+      $entities4 = $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('status', '1')
+      ->propertyCondition('created', $days_ago, '>')
+      ->fieldCondition('field_pum_private', 'tid', $usertags, 'IN')
+      ->addMetaData('account', user_load(1))
+      ->execute();
+       
+      $entities = array();
+      if (isset($entities1["node"])) $entities = $entities+$entities1["node"];
+      if (isset($entities2["node"])) $entities = $entities+$entities2["node"];
+      if (isset($entities3["node"])) $entities = $entities+$entities3["node"];
+      if (isset($entities4["node"])) $entities = $entities+$entities4["node"];
+     
+//      if (count($entities1["node"]) > 0){
+      if (count($entities) > 0){
+        $ret .= "<h2>Forum</h2>";
+//        foreach ($entities1["node"] as $nid => $entity){
+        foreach ($entities as $nid => $entity){
+           $node = node_load($nid);
+
+           $ret .= $node->title." - ".$node->uid." - ".$node->created."<br />";
+        }
+      } 
+//      $ret .= print_r($entities,true);
+    }
+  }
+ 
+  return $ret;
+}
+
+
 
