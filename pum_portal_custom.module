@@ -810,8 +810,10 @@ function _pum_portal_custom_digest($uid=1,$days=5){
 //        foreach ($entities1["node"] as $nid => $entity){
         foreach ($entities as $nid => $entity){
            $node = node_load($nid);
+           $usr = user_load($node->uid);
+           $created = date ("d-m-Y", $node->created);
 
-           $ret .= $node->title." - ".$node->uid." - ".$node->created."<br />";
+           $ret .= $node->title." - ".$usr->name." - ".$created."<br />";
         }
       } 
 //      $ret .= print_r($entities,true);
