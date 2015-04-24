@@ -32,13 +32,22 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
     $form['#validate'][] = '_pum_portal_custom_required_fields';
   }
 
-  if ($form_id = "user_profile_form"){
+  if ($form_id == "user_profile_form"){
     foreach ($form as $fieldname => $field){
 
       if (substr_compare($fieldname, "field_pum_private", 0) == 0){
 
         $form[$fieldname]['#disabled'] = TRUE;
         isset($form[$fieldname]['#attributes']['style'])?$form[$fieldname]['#attributes']['style'] .= "display:none;":$form[$fieldname]['#attributes']['style']="display:none";
+      }
+    }
+  }
+  if ($form_id == "user_profile_form" || $form_id == "user_edit")
+  {
+    foreach ($form as $fieldname => $field){
+
+      if (substr_compare($fieldname, "field_pum", 0, 9) == 0){
+         $form[$fieldname]['#access'] = FALSE;   
       }
     }
   }
