@@ -4,7 +4,6 @@ code.help {
   padding: inherit;
   position:relative;
 }
-
 code.help span.helpbutton {
   background: url('help.png') no-repeat 0 0;
   padding: 10px 0 0 26px;
@@ -19,4 +18,9 @@ code.help div {
   color: #ffffff;
   border: 1px solid red;
   padding: 5px;
+}
+code.help span.close {
+  position: absolute;
+  right: 0;
+  top: 0;
 }
