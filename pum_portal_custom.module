@@ -586,6 +586,11 @@ function pum_portal_custom_delete_taxonomy_item(&$user, $context) {
     $fieldname = "field_pum_private";
     $account_edit[$fieldname] = $user->field_pum_private;
 
+    if ($oterm->vocabulary_machine_name == "pum_generic") {
+       $fieldname="field_pum_generic";
+       $account_edit[$fieldname] = $user->field_pum_generic;
+    }
+
     if (!isset($account_edit[$fieldname]) ||
        !isset($account_edit[$fieldname]["und"]))
     $account_edit[$fieldname]["und"] = array();
