@@ -4,3 +4,5 @@ package = PUM
 core = 7.x
 version = "7.x-1.0"
 project = pum_portal_custom
+dependencies[] = mimemail
+dependencies[] = mimemail_compress

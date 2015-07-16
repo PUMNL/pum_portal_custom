@@ -49,6 +49,9 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
       if (substr_compare($fieldname, "field_pum", 0, 9) == 0){
          $form[$fieldname]['#access'] = FALSE;   
       }
+      if (substr_compare($fieldname, "field_last_digest", 0) == 0){
+         $form[$fieldname]['#access'] = FALSE;   
+      }
     }
   }
 
@@ -243,7 +246,7 @@ function pum_portal_custom_cron() {
 
  _pum_portal_custom_sync_countries(true);
  _pum_portal_custom_sync_sectors(true);
-
+ _pum_portal_custom_digest_all();
 }
 
 function _pum_portal_custom_sync_sectors($cron = false, $force = false){
@@ -731,6 +734,86 @@ function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef
    }
 }
 
+function _pum_portal_custom_digest_all()
+{
+  mailsystem_set(array(
+    'pum_portal_custom_digest' => 'MimeMailSystem', // Just messages with $key sent by $module.
+  ));
+
+
+   //get all users who requested an email
+      $query = new EntityFieldQuery();
+      $users = $query->entityCondition('entity_type', 'user')
+      ->propertyCondition('status', '1')
+      ->fieldCondition('field_email_frequency', 'value', 1,  '>=')
+      ->addMetaData('account', user_load(1))
+      ->execute();
+   
+//     print_r($users);
+
+     foreach ($users["user"] as $uid => $user){
+   //per user
+        $account = user_load($uid);
+    
+       //get last sent email
+       $last_digest = 0;
+       if (isset($account->field_last_digest["und"]) && is_array($account->field_last_digest["und"])){
+          foreach($account->field_last_digest["und"] as $vals){
+            if (isset($vals["value"])) $last_digest=$vals["value"];
+          }
+        }
+        $frequency = 0;
+
+       //check with preferred digest settings
+       if (isset($account->field_email_frequency["und"]) && is_array($account->field_email_frequency["und"])){
+          foreach($account->field_email_frequency["und"] as $vals){
+            if (isset($vals["value"])) $frequency=$vals["value"];
+          }
+        }
+   
+
+       //if needs to send today
+       if ($frequency > 0)
+          $refdate = time() - ($frequency * 24 * 60 * 60);
+           
+//          print "last digest:".$last_digest." ref:".$refdate;          
+   
+          if ($refdate > $last_digest){
+          //get digest per user
+              $digest_basetxt = _pum_portal_custom_digest($uid, $frequency);
+
+  //            print $digest_basetxt;
+
+          //send email 
+              if (strlen($digest_basetxt) > 0){
+                 $params['account'] = $account;
+                 $params['frequency']= $frequency;
+                 $params['digestbase'] = $digest_basetxt;
+                 drupal_mail('pum_portal_custom', 'digest', $account->mail, user_preferred_language($account), $params);
+              }              
+
+          //update digest date
+              $accountedit = array();
+              $accountedit["field_last_digest"]["und"][0]["value"] = time(); 
+              user_save($account, $accountedit);
+          }
+
+     }
+}
+
+  function pum_portal_custom_mail($key, &$message, $params) {
+    $data['user'] = $params['account'];
+    $options['language'] = $message['language'];
+    user_mail_tokens($variables, $data, $options);
+    switch($key) {
+      case 'digest':
+        $langcode = $message['language']->language;
+        $message['subject'] = 'PUMnet update';
+        $message['body'][]= "To read the full update, please log in to PUMnet\n\n".$params['digestbase']."\n\nYou receive this PUMnet update because you are involved in PUM Netherlands senior experts. In your profile settings on PUMnet, you can choose to adjust the frequency of receiving this PUMnet updates in your inbox.";
+        break;
+    }
+  }
+
 function _pum_portal_custom_digest($uid=1,$days=5){
   $ret = "";
   if (is_numeric($uid)){
@@ -765,23 +848,84 @@ function _pum_portal_custom_digest($uid=1,$days=5){
 
 
     if (count($usertags) > 0){
-/*      $view = views_get_view('my_latest_forum_topics_test');
-      $view->set_display('Page');
-      $view->set_arguments(array(implode("+",$usertags)));
-  // change the amount of items to show
-      $view->set_items_per_page(4);
-      $view->pre_execute();
-      $view->execute();
-//      $ret .= "v:".$view->render();
-     
-      $ret .= print_r(views_embed_view('my_blog','default',array(9)),true);
-*/
       
+      $entities =  _pum_portal_custom_get_recent_nodes('pum_forum_item', $days, $usertags);
+   
+      if (count($entities) > 0){
+        $ret .= "<h2>FORUM</h2>";
+        foreach ($entities as $nid => $entity){
+           $node = node_load($nid);
+           $node_view = node_view($node,'summary');
+           $summary = $node_view['body'][0]['#markup'];
+
+           $usr = user_load($node->uid);
+           $created = date ("d-m-Y", $node->created);
+
+           $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3><br />";
+           $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
+        }
+      } 
+
+      $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_blog', $days, $usertags);
+   
+      if (count($entities) > 0){
+        $ret .= "<h2>BLOGS</h2>";
+        foreach ($entities as $nid => $entity){
+           $node = node_load($nid);
+           $node_view = node_view($node,'summary');
+           $summary = $node_view['body'][0]['#markup'];
+
+           $usr = user_load($node->uid);
+           $created = date ("d-m-Y", $node->created);
+
+           $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3>\n";
+           $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
+
+        }
+      } 
+
+      $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_document', $days, $usertags);
+   
+      if (count($entities) > 0){
+        $ret .= "<h2>PUM's Library - new additions</h2>";
+        foreach ($entities as $nid => $entity){
+           $node = node_load($nid);
+           $usr = user_load($node->uid);
+           $created = date ("d-m-Y", $node->created);
+
+           $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">View</a><br />';
+        }
+      } 
+      
+
+
+      $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_news', $days, $usertags);
+   
+      if (count($entities) > 0){
+        $ret .= "<h2>PUM News</h2>";
+        foreach ($entities as $nid => $entity){
+           $node = node_load($nid);
+           $usr = user_load($node->uid);
+           $created = date ("d-m-Y", $node->created);
+
+           $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><br />';
+        }
+      } 
+
+
+     
+    }
+  }
+ 
+  return $ret;
+}
+
+function _pum_portal_custom_get_recent_nodes($type,$days, $usertags){
       $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
 
       $query = new EntityFieldQuery();
       $entities1 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('type', $type)
       ->propertyCondition('status', '1')
       ->propertyCondition('created', $days_ago, '>')
       ->fieldCondition('field_pum_country', 'tid', $usertags, 'IN')
@@ -789,7 +933,7 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       ->execute();
       $query = new EntityFieldQuery();
       $entities2 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('type', $type)
       ->propertyCondition('status', '1')
       ->propertyCondition('created', $days_ago, '>')
       ->fieldCondition('field_pum_sector', 'tid', $usertags, 'IN')
@@ -797,7 +941,7 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       ->execute();
       $query = new EntityFieldQuery();
       $entities3 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('type', $type)
       ->propertyCondition('status', '1')
       ->propertyCondition('created', $days_ago, '>')
       ->fieldCondition('field_pum_generic', 'tid', $usertags, 'IN')
@@ -805,7 +949,7 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       ->execute();
       $query = new EntityFieldQuery();
       $entities4 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', 'pum_forum_item')
+      ->propertyCondition('type', $type)
       ->propertyCondition('status', '1')
       ->propertyCondition('created', $days_ago, '>')
       ->fieldCondition('field_pum_private', 'tid', $usertags, 'IN')
@@ -817,25 +961,10 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       if (isset($entities2["node"])) $entities = $entities+$entities2["node"];
       if (isset($entities3["node"])) $entities = $entities+$entities3["node"];
       if (isset($entities4["node"])) $entities = $entities+$entities4["node"];
-     
-//      if (count($entities1["node"]) > 0){
-      if (count($entities) > 0){
-        $ret .= "<h2>Forum</h2>";
-//        foreach ($entities1["node"] as $nid => $entity){
-        foreach ($entities as $nid => $entity){
-           $node = node_load($nid);
-           $usr = user_load($node->uid);
-           $created = date ("d-m-Y", $node->created);
 
-           $ret .= $node->title." - ".$usr->name." - ".$created."<br />";
-        }
-      } 
-//      $ret .= print_r($entities,true);
-    }
-  }
- 
-  return $ret;
+   
+   return $entities;
+
 }
-
 
 
