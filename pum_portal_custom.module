@@ -734,7 +734,7 @@ function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef
    }
 }
 
-function _pum_portal_custom_digest_all()
+function _pum_portal_custom_digest_all($force = false)
 {
   mailsystem_set(array(
     'pum_portal_custom_digest' => 'MimeMailSystem', // Just messages with $key sent by $module.
@@ -749,7 +749,7 @@ function _pum_portal_custom_digest_all()
       ->addMetaData('account', user_load(1))
       ->execute();
    
-//     print_r($users);
+ //    print_r($users);
 
      foreach ($users["user"] as $uid => $user){
    //per user
@@ -776,13 +776,13 @@ function _pum_portal_custom_digest_all()
        if ($frequency > 0)
           $refdate = time() - ($frequency * 24 * 60 * 60);
            
-//          print "last digest:".$last_digest." ref:".$refdate;          
+    //      print "last digest:".$last_digest." ref:".$refdate;          
    
-          if ($refdate > $last_digest){
+          if ($refdate > $last_digest || $force){
           //get digest per user
               $digest_basetxt = _pum_portal_custom_digest($uid, $frequency);
 
-  //            print $digest_basetxt;
+         //     print $digest_basetxt;
 
           //send email 
               if (strlen($digest_basetxt) > 0){
@@ -850,6 +850,9 @@ function _pum_portal_custom_digest($uid=1,$days=5){
     if (count($usertags) > 0){
       
       $entities =  _pum_portal_custom_get_recent_nodes('pum_forum_item', $days, $usertags);
+      $flagentities = _pum_portal_custom_get_recent_flag_nodes('pum_forum_item', $uid, $days, 'subscribe_to_this_forum_topic');      
+   
+      if (isset($flagentities)) $entities = $entities + $flagentities;
    
       if (count($entities) > 0){
         $ret .= "<h2>FORUM</h2>";
@@ -867,7 +870,12 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       } 
 
       $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_blog', $days, $usertags);
+      $flagentities = _pum_portal_custom_get_recent_flag_nodes('pum_portal_blog', $uid, $days, 'subscribe_to_this_blog_page');      
+      $flagentities2 =  _pum_portal_custom_get_recent_flag_user_nodes('pum_portal_blog', $uid, $days, 'subscribe_to_this_user_blog');      
    
+      if (isset($flagentities)) $entities = $entities + $flagentities;
+      if (isset($flagentities2)) $entities = $entities + $flagentities2;
+
       if (count($entities) > 0){
         $ret .= "<h2>BLOGS</h2>";
         foreach ($entities as $nid => $entity){
@@ -912,12 +920,93 @@ function _pum_portal_custom_digest($uid=1,$days=5){
         }
       } 
 
+      $entities = _pum_portal_custom_get_recent_users(array("Expert"), $days);
+        if (count($entities) > 0){
+        $ret .= "<h2>PUM Community</h2>";
+        foreach ($entities as $uid => $entity){
+           $ret .= $entity->civicrm_contact_display_name.' <a href="'.url("user/".$uid, array('absolute' => TRUE)).'">View..</a><br />';
+        }
+      }
 
-     
+      
     }
   }
  
   return $ret;
+}
+
+function _pum_portal_custom_get_recent_flag_nodes($type, $uid, $days, $flagname){
+      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+
+      $q = "SELECT node.nid AS nid FROM 
+      {node} node
+      LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
+      INNER JOIN {flagging} flagging_node ON node.nid = flagging_node.entity_id 
+      INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
+      WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
+      ORDER BY node.created DESC";
+ 
+      $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
+
+      $entities = array();
+
+      foreach ($result as $record) {
+           $entities[$record->nid] = $record->nid;
+      }      
+ 
+    
+      return $entities;
+
+
+}
+function _pum_portal_custom_get_recent_users($roles, $days){
+      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+
+      $q = "SELECT users.uid AS uid, civicrm_contact.display_name as civicrm_contact_display_name
+      FROM {users} users
+      LEFT JOIN {users_roles} users_roles ON users.uid = users_roles.uid
+      LEFT JOIN {role} role on role.rid = users_roles.rid
+      LEFT JOIN {civicrm_uf_match} civicrm_uf_match ON users.uid = civicrm_uf_match.uf_id
+      LEFT JOIN {civicrm_contact} civicrm_contact ON civicrm_uf_match.contact_id = civicrm_contact.id
+      WHERE (( (users.status <> '0') AND (role.name IN (:roles)) AND (users.created > :created) ))";
+
+      $result = db_query($q, array(':roles' => $roles, ':created' => $days_ago));
+
+      $entities = array();
+
+      foreach ($result as $record) {
+           $entities[$record->uid] = $record;
+      }      
+      return $entities;
+
+
+}
+
+
+function _pum_portal_custom_get_recent_flag_user_nodes($type, $uid, $days, $flagname){
+      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+
+      $q = "SELECT node.nid AS nid FROM 
+      {node} node
+      LEFT JOIN {users} users_node ON node.uid = users_node.uid
+      LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
+      INNER JOIN {flagging} flagging_node ON users_node.uid = flagging_node.entity_id 
+      INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
+      WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
+      ORDER BY node.created DESC";
+ 
+      $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
+
+      $entities = array();
+
+      foreach ($result as $record) {
+           $entities[$record->nid] = $record->nid;
+      }      
+ 
+    
+      return $entities;
+
+
 }
 
 function _pum_portal_custom_get_recent_nodes($type,$days, $usertags){
