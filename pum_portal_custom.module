@@ -789,7 +789,9 @@ function _pum_portal_custom_digest_all($force = false)
                  $params['account'] = $account;
                  $params['frequency']= $frequency;
                  $params['digestbase'] = $digest_basetxt;
-                 drupal_mail('pum_portal_custom', 'digest', $account->mail, user_preferred_language($account), $params);
+                 $m=drupal_mail('pum_portal_custom', 'digest', $account->mail, user_preferred_language($account), $params);
+                 
+                 print_r($m);
               }              
 
           //update digest date
@@ -808,8 +810,9 @@ function _pum_portal_custom_digest_all($force = false)
     switch($key) {
       case 'digest':
         $langcode = $message['language']->language;
+        $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
         $message['subject'] = 'PUMnet update';
-        $message['body'][]= "To read the full update, please log in to PUMnet\n\n".$params['digestbase']."\n\nYou receive this PUMnet update because you are involved in PUM Netherlands senior experts. In your profile settings on PUMnet, you can choose to adjust the frequency of receiving this PUMnet updates in your inbox.";
+        $message['body'][]= "To read the full update, please log in to PUMnet\n\n".$params['digestbase']."\n\n<br /><br />You receive this PUMnet update because you are involved in PUM Netherlands senior experts. In your profile settings on PUMnet, you can choose to adjust the frequency of receiving this PUMnet updates in your inbox.";
         break;
     }
   }
@@ -855,7 +858,8 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       if (isset($flagentities)) $entities = $entities + $flagentities;
    
       if (count($entities) > 0){
-        $ret .= "<h2>FORUM</h2>";
+        $img = url('sites/all/themes/pum/images/icon-portal-forum-50x50.png', array('absolute'=>true));
+        $ret .= "<h2><img src='".$img."' />FORUM</h2>";
         foreach ($entities as $nid => $entity){
            $node = node_load($nid);
            $node_view = node_view($node,'summary');
@@ -877,7 +881,9 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       if (isset($flagentities2)) $entities = $entities + $flagentities2;
 
       if (count($entities) > 0){
-        $ret .= "<h2>BLOGS</h2>";
+        $img = url('sites/all/themes/pum/images/icon-portal-blog-50x50.png', array('absolute'=>true));
+
+        $ret .= '<h2><img src="'.$img.'" />BLOGS</h2>';
         foreach ($entities as $nid => $entity){
            $node = node_load($nid);
            $node_view = node_view($node,'summary');
@@ -895,7 +901,9 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_document', $days, $usertags);
    
       if (count($entities) > 0){
-        $ret .= "<h2>PUM's Library - new additions</h2>";
+        $img = url('sites/all/themes/pum/images/icon-portal-library-50x50.png', array('absolute'=>true));
+
+        $ret .= "<h2><img src='".$img."' />PUM's Library - new additions</h2>";
         foreach ($entities as $nid => $entity){
            $node = node_load($nid);
            $usr = user_load($node->uid);
@@ -910,7 +918,9 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_news', $days, $usertags);
    
       if (count($entities) > 0){
-        $ret .= "<h2>PUM News</h2>";
+        $img = url('sites/all/themes/pum/images/icon-portal-news-50x50.png', array('absolute'=>true));
+
+        $ret .= "<h2><img src='".$img."' />PUM News</h2>";
         foreach ($entities as $nid => $entity){
            $node = node_load($nid);
            $usr = user_load($node->uid);
@@ -920,12 +930,25 @@ function _pum_portal_custom_digest($uid=1,$days=5){
         }
       } 
 
-      $entities = _pum_portal_custom_get_recent_users(array("Expert"), $days);
+      $entities = _pum_portal_custom_get_recent_users(array("Customer (contact)"), $days);
         if (count($entities) > 0){
-        $ret .= "<h2>PUM Community</h2>";
+        $img = url('sites/all/themes/pum/images/icon-portal-directory-50x50.png', array('absolute'=>true));
+
+        $ret .= "<h2><img src='".$img."' />PUM Community</h2><table>";
         foreach ($entities as $uid => $entity){
-           $ret .= $entity->civicrm_contact_display_name.' <a href="'.url("user/".$uid, array('absolute' => TRUE)).'">View..</a><br />';
+           $img = "";
+           if (isset($entity->civicrm_contact_image_url) && strlen($entity->civicrm_contact_image_url) > 0) {
+              $img = $entity->civicrm_contact_image_url;
+           }
+           $ret .= '<tr><td>'
+                  .$img
+                  .'</td><td>'
+                  .$entity->civicrm_contact_display_name
+                  .' <a href="'
+                  .url("user/".$uid, array('absolute' => TRUE))
+                  .'">View..</a></td></tr>';
         }
+        $ret .= "</table>";
       }
 
       
@@ -962,13 +985,14 @@ function _pum_portal_custom_get_recent_flag_nodes($type, $uid, $days, $flagname)
 function _pum_portal_custom_get_recent_users($roles, $days){
       $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
 
-      $q = "SELECT users.uid AS uid, civicrm_contact.display_name as civicrm_contact_display_name
+      $q = "SELECT users.uid AS uid, civicrm_contact.display_name as civicrm_contact_display_name, civicrm_contact.image_URL AS civicrm_contact_image_url, field_data_field_pum_user_sector.field_pum_user_sector_tid AS field_pum_user_sector_tid
       FROM {users} users
       LEFT JOIN {users_roles} users_roles ON users.uid = users_roles.uid
       LEFT JOIN {role} role on role.rid = users_roles.rid
       LEFT JOIN {civicrm_uf_match} civicrm_uf_match ON users.uid = civicrm_uf_match.uf_id
       LEFT JOIN {civicrm_contact} civicrm_contact ON civicrm_uf_match.contact_id = civicrm_contact.id
-      WHERE (( (users.status <> '0') AND (role.name IN (:roles)) AND (users.created > :created) ))";
+      LEFT JOIN {field_data_field_pum_user_sector} field_data_field_pum_user_sector ON users.uid = field_data_field_pum_user_sector.entity_id AND field_data_field_pum_user_sector.entity_type = 'user'
+      WHERE (( (users.status <> '0') AND (role.name NOT IN (:roles)) AND (users.created > :created) ))";
 
       $result = db_query($q, array(':roles' => $roles, ':created' => $days_ago));
 
