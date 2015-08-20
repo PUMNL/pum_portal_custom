@@ -55,6 +55,9 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
     }
   }
 
+  if ($form_id == "merci_reservation_node_form") {
+	  $form['actions']['submit']['#value'] = t('Submit');
+  }
 }
 
 //*One of the pum_portal fields is required*//
@@ -728,7 +731,7 @@ function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef
 
             user_save($account, $account_edit);
           }
-//          watchdog("debug", "EntityTag:".$op."  ".$tagid." ".$cid. print_r($tids,true));
+            watchdog("debug", "EntityTag:".$op."  ".$tagid." ".$cid. print_r($tids,true));
         }
       }
    }
