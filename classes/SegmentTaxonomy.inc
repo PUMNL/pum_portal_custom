@@ -58,9 +58,7 @@ class SegmentTaxonomy
 
         $terms = self::getTermsBySegmentId($objectRef->segment_id, false);
         $sector_coorinator_id = self::getSectorCoordinatorId($objectRef->segment_id);
-        $segment = civicrm_api3('Segment', 'getsingle', array('id' => $objectRef->segment_id));
         foreach($terms as $term) {
-            $term->name = $segment['label'];
             $term->field_pum_coordinator_id["und"][0]["value"]  = $sector_coorinator_id ? $sector_coorinator_id : null;
             taxonomy_term_save($term);
         }
@@ -112,7 +110,11 @@ class SegmentTaxonomy
             ->fieldCondition('field_pum_segment_id', 'value', $segment_id, '=');
         $result = $query->execute();
         if (isset($result['taxonomy_term']) && count($result['taxonomy_term'])) {
-            return $result['taxonomy_term'];
+            $return = array();
+            foreach($result['taxonomy_term'] as $tid => $term) {
+                $return[] = taxonomy_term_load($tid);
+            }
+            return $return;
         } elseif ($create_new_one) {
             $sector_vocabulary = taxonomy_vocabulary_machine_name_load("sector");
             $term = new stdClass();
