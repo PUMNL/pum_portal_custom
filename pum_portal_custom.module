@@ -110,7 +110,7 @@ function _pum_sync_settings_form ($form, &$form_state){
 
  $form['high_school']['tests_taken'] = array(
     '#type' => 'checkboxes',
-    '#options' => array("countries" => "countries", "sections" => "sections"),
+    '#options' => array("countries" => "countries"),
     '#title' => t('What pum settings need to be synced '),
     '#required' => TRUE,
   );
@@ -137,8 +137,6 @@ function _pum_sync_settings_form_submit($form, &$form_state) {
    $msg .= print_r($form_state["values"],true);
 
    if ( strcmp($form_state["values"]["tests_taken"]["countries"],"countries")===0) {$msg .="countries: ".$form_state["values"]["tests_taken"]["countries"] ;  _pum_portal_custom_sync_countries(false, $force); }
-
-   if ( strcmp($form_state["values"]["tests_taken"]["sections"],"sections") ===0) { $msg .= " sections: ".$form_state["values"]["tests_taken"]["sections"]; _pum_portal_custom_sync_sectors(false, $force); }
    
 //   drupal_set_message( $msg );
 }
@@ -254,94 +252,8 @@ function _pum_portal_custom_sync_countries($cron = false, $force = false)
 }
 ///
 function pum_portal_custom_cron() {
-
-
  _pum_portal_custom_sync_countries(true);
- _pum_portal_custom_sync_sectors(true);
  _pum_portal_custom_digest_all();
-}
-
-function  _pum_portal_custom_sync_sectors($cron = false, $force = false){
-  civicrm_initialize( );
-
-  $params = array(
-    'version' => 3,
-    'sequential' => 1,
-    'is_active' => 1,
-    'options' => Array("limit" => 1000),
-  );
-  $resultsectors = civicrm_api('TagEnhanced', 'get', $params);
-
-//  drupal_set_message($resultsectors);
-
-  $params = array(
-    'version' => 3,
-    'sequential' => 0,
-//    'is_active' => 1,
-    'options' => Array("limit" => 10000),
-  );
-  $resulttags = civicrm_api('Tag', 'get', $params);
-
-//  drupal_set_message($resulttags);
-
-// check with md5 hash
-   $md5tot = md5(print_r($resultsectors,true).print_r($resulttags,true));
-
-   $md5db = variable_get("pum_md5_sector", "");
-  
-   if ($md5tot == $md5db  && !$force){
-     watchdog("pum", "sections the same");
-     if(!$cron) drupal_set_message("sections the same");
-   }
-   else{
-      watchdog("pum", "sections updated");
-      if(!$cron) drupal_set_message("sections updated");
- 
- 
-    $voc = taxonomy_vocabulary_machine_name_load("sector");
-
-    if ($resultsectors["is_error"] == "0"){
-    //get Sector parent tag
-      $sector_tag_id=-1;
-      if (isset($resulttags["values"])) foreach($resulttags["values"] as $tagid => $tag){
-         if ($tag["name"]=="Sector") $sector_tag_id = $tagid;  
-      }
-
-      foreach($resultsectors["values"] as $sector){
-
-        $c_tag = $resulttags["values"][$sector["tag_id"]];
-
-        if (isset($c_tag) && isset($c_tag["parent_id"]) && $c_tag["parent_id"]==$sector_tag_id) {
-           $c_tag_name = htmlspecialchars_decode($c_tag["name"]);
-          $terms=taxonomy_get_term_by_name($c_tag_name,"sector"); 
-          if (count($terms) > 0) {
-            $term = array_shift($terms);
-          }else {
-            $terms=taxonomy_get_term_by_name($c_tag["name"],"sector"); 
-            if (count($terms) > 0) {
-              $term = array_shift($terms);
-            } else {
-              $term = new stdClass();
-            }
-            $term->name = $c_tag_name;
-          }
-          $term->vid = $voc->vid;
-          $term->field_pum_tag_id["und"][0]["value"] = $sector["tag_id"];
-          $term->field_pum_coordinator_id["und"][0]["value"]  = $sector["coordinator_id"];
-          taxonomy_term_save($term);
-        }
-
-
-      }
- 
-    }
-      
-
-
-      variable_set("pum_md5_sector", $md5tot);
-
-
-   }
 }
 
 /**
