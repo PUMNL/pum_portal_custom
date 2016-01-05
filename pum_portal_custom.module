@@ -1,5 +1,17 @@
 <?php
 
+/*function pum_portal_menu_alter(&$items) {
+  return $items;
+}*/
+
+/*function pum_portal_custom_ctools_plugin_pre_alter(&$plugin, &$info) {
+  // Override a function defined by the plugin.
+  var_dump($plugin); var_dump($info);
+  if ($info['type'] == 'my_type') {
+    $plugin['my_flag'] = 'new_value';
+  }
+}*/
+
 
 //Get a default taxonomy item for node_add
 
@@ -249,7 +261,7 @@ function pum_portal_custom_cron() {
  _pum_portal_custom_digest_all();
 }
 
-function _pum_portal_custom_sync_sectors($cron = false, $force = false){
+function  _pum_portal_custom_sync_sectors($cron = false, $force = false){
   civicrm_initialize( );
 
   $params = array(
@@ -661,10 +673,16 @@ function pum_portal_custom_add_taxonomy_item(&$user, $context) {
   }
 }
 
+function pum_portal_custom_civicrm_pre($op, $objectName, $objectId, &$params) {
+    SegmentTaxonomy::pre($op, $objectName, $objectId, $params);
+}
+
 //*hook_civicrm_post
 
 function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef)
 {
+    SegmentTaxonomy::post($op, $objectName, $objectId, $objectRef);
+
    if ($objectName == "EntityTag" && ($op == "create" || $op == "delete")){
       $tagid = $objectId;
       //load tag
