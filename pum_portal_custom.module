@@ -587,6 +587,7 @@ function pum_portal_custom_add_taxonomy_item(&$user, $context) {
 
 function pum_portal_custom_civicrm_pre($op, $objectName, $objectId, &$params) {
     SegmentTaxonomy::pre($op, $objectName, $objectId, $params);
+    SegmentSectorCommunity::pre($op, $objectName, $objectId, $params);
 }
 
 //*hook_civicrm_post
@@ -594,74 +595,7 @@ function pum_portal_custom_civicrm_pre($op, $objectName, $objectId, &$params) {
 function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef)
 {
     SegmentTaxonomy::post($op, $objectName, $objectId, $objectRef);
-
-   if ($objectName == "EntityTag" && ($op == "create" || $op == "delete")){
-      $tagid = $objectId;
-      //load tag
-      $params = array(
-        'version' => 3,
-        'sequential' => 1,
-        'id' => $tagid,
-      );
-      $resulttag = civicrm_api('Tag', 'getsingle', $params);
-
-      $params = array(
-        'version' => 3,
-        'sequential' => 1,
-        'name' => 'sector',
-      );
-      $resultsectortag = civicrm_api('Tag', 'get', $params);
-      $sectortagid = $resultsectortag["id"];
-
-      if (isset($resulttag["parent_id"]) && $resulttag["parent_id"] == $sectortagid){
- 
-      //if sector:
-        $cid = 0;
-        if (is_array($objectRef[0]) && isset($objectRef[0][0])) $cid = $objectRef[0][0]; 
-
-
-        //get taxonomy term
-        $query = new EntityFieldQuery();
-        $query->entityCondition('entity_type', 'taxonomy_term')
-        ->fieldCondition('field_pum_tag_id', 'value', $resulttag["id"], '=');
-        $result = $query->execute();
-        $tids = array_keys($result['taxonomy_term']);
-        //expect only one
-        $tid = 0;
-        if (isset($tids[0])) $tid =$tids[0];   
-
-
-        //load contact, get $uid
-        $params = array(
-          'version' => 3,
-          'sequential' => 1,
-          'contact_id' => 458,
-        );
-        $resultufm = civicrm_api('UFMatch', 'getsingle', $params);  
-    
-        $uid = -1;
- 
-        if (isset($resultufm["uf_id"])) $uid = $resultufm["uf_id"];
-
-        if ($tid > 0 && $uid > 0) {
-          $account = user_load($uid);
-          $account_edit = array();
-
-          if ($op == "create"){ //add
-            $account_edit["field_pum_user_sector"]["und"][]=array("tid" => $tid);
-
-            user_save($account, $account_edit);
-
-          }
-          elseif($op == "delete") { //only delete if item is in field
-            $account_edit["field_pum_user_sector"]["und"]=array();           
-
-            user_save($account, $account_edit);
-          }
-//          watchdog("debug", "EntityTag:".$op."  ".$tagid." ".$cid. print_r($tids,true));
-        }
-      }
-   }
+    SegmentSectorCommunity::post($op, $objectName, $objectId, $objectRef);
 }
 
 function _pum_portal_custom_digest_all($force = false)
