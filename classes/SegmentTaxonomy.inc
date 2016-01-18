@@ -78,6 +78,14 @@ class SegmentTaxonomy
             return;
         }
 
+        //do not continue when migration from sector tags to contact segment is running
+        if (function_exists('_contact_segment_migrate_is_running')) {
+            $migrateRunning = _contact_segment_migrate_is_running();
+            if ($migrateRunning) {
+                return;
+            }
+        }
+
         if ($objectRef->parent_id != null) {
             //do not update areas of expertise
             return;
