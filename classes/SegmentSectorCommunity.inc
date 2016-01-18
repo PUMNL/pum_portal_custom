@@ -57,6 +57,9 @@ class SegmentSectorCommunity {
 
     protected static function subscribe($contact_id, $segment_id) {
         $uid = self::user_id($contact_id);
+        if (!$uid) {
+            return;
+        }
         $account = user_load($uid);
         $account_edit = array();
         $account_edit["field_pum_user_sector"] = $account->field_pum_user_sector;
@@ -70,6 +73,9 @@ class SegmentSectorCommunity {
 
     protected static function unsubscribe($contact_id, $segment_id) {
         $uid = self::user_id($contact_id);
+        if (!$uid) {
+            return;
+        }
         $account = user_load($uid);
         $account_edit = array();
         $account_edit["field_pum_user_sector"] = $account->field_pum_user_sector;
@@ -88,10 +94,15 @@ class SegmentSectorCommunity {
     }
 
     protected static function user_id($contact_id) {
-        return civicrm_api3('UFMatch', 'getvalue', array(
-            'contact_id' => $contact_id,
-            'return' => 'uf_id',
-        ));
+        try {
+            return civicrm_api3('UFMatch', 'getvalue', array(
+                'contact_id' => $contact_id,
+                'return' => 'uf_id',
+            ));
+        } catch (Exception $e) {
+            //do nothing
+        }
+        return false;
     }
 
 }
