@@ -384,7 +384,9 @@ function _pum_portal_subscription(){
 
         if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])){
             foreach($fieldvalue["und"] as $vals){
-              if (isset($vals["tid"]))  $term[]=$vals["taxonomy_term"];
+              if (isset($vals["taxonomy_term"])){
+              	  $term[]=$vals["taxonomy_term"];
+              }
             }
         }
      }
