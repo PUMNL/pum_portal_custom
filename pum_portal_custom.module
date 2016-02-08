@@ -585,9 +585,17 @@ function pum_portal_custom_add_taxonomy_item(&$user, $context) {
   }
 }
 
+function pum_portal_custom_civicrm_update_sector_community($contact_segment_id, $is_main) {
+  $contact_segment = civicrm_api3('ContactSegment', 'getsingle', array('id' => $contact_segment_id));
+  if ($contact_segment['is_main']) {
+    SegmentSectorCommunity::subscribe($contact_segment['contact_id'], $contact_segment['segment_id']);
+  } else {
+    SegmentSectorCommunity::unsubscribe($contact_segment['contact_id'], $contact_segment['segment_id']);
+  }
+}
+
 function pum_portal_custom_civicrm_pre($op, $objectName, $objectId, &$params) {
     SegmentTaxonomy::pre($op, $objectName, $objectId, $params);
-    SegmentSectorCommunity::pre($op, $objectName, $objectId, $params);
 }
 
 //*hook_civicrm_post
@@ -595,7 +603,6 @@ function pum_portal_custom_civicrm_pre($op, $objectName, $objectId, &$params) {
 function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef)
 {
     SegmentTaxonomy::post($op, $objectName, $objectId, $objectRef);
-    SegmentSectorCommunity::post($op, $objectName, $objectId, $objectRef);
 }
 
 function _pum_portal_custom_digest_all($force = false)

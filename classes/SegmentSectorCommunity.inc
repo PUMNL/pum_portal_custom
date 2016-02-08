@@ -6,60 +6,7 @@
  */
 class SegmentSectorCommunity {
 
-    private static $originalContactSegment = false;
-
-    public static function pre($op, $objectName, $id, &$params) {
-        if ($objectName != 'ContactSegment' && $op != 'create') {
-            return;
-        }
-
-        if ($id) {
-            self::$originalContactSegment = civicrm_api3('ContactSegment', 'getsingle', array('id' => $id));
-        } else {
-            self::$originalContactSegment = false;
-        }
-    }
-
-    public static function post($op, $objectName, $id, &$objectRef) {
-        if ($objectName != 'ContactSegment') {
-            return;
-        }
-
-        $civicoop_segment_role_option_group = civicrm_api3('OptionGroup', 'getvalue', array('name' => 'civicoop_segment_role', 'return' => 'id'));
-        $expert_role = civicrm_api3('OptionValue', 'getvalue', array('option_group_id' => $civicoop_segment_role_option_group, 'name' => 'expert', 'return' => 'value'));
-
-        if ($objectRef->role_value != $expert_role) {
-            //only process for expert roles
-            return;
-        }
-
-        $segment = civicrm_api3('Segment', 'getsingle', array('id' => $objectRef->segment_id));
-        if (!empty($segment['parent_id'])) {
-            //do not link area of expertise
-            return;
-        }
-
-        $action = 'none';
-        if ($op == 'create' && $objectRef->is_active) {
-            $action = 'subscribe';
-        } elseif ($op == 'edit' && self::$originalContactSegment) {
-            if (self::$originalContactSegment['is_active'] && !$objectRef->is_active) {
-                $action = 'unsubscribe';
-            } elseif (!self::$originalContactSegment['is_active'] && $objectRef->is_active) {
-                $action = 'subscribe';
-            }
-        } elseif ($op == 'delete') {
-            $action = 'unsubscribe';
-        }
-
-        if ($action == 'subscribe') {
-            self::subscribe($objectRef->contact_id, $objectRef->segment_id);
-        } elseif ($action == 'unsubscribe') {
-            self::unsubscribe($objectRef->contact_id, $objectRef->segment_id);
-        }
-    }
-
-    protected static function subscribe($contact_id, $segment_id) {
+    public static function subscribe($contact_id, $segment_id) {
         $uid = self::user_id($contact_id);
         if (!$uid) {
             return;
@@ -70,12 +17,12 @@ class SegmentSectorCommunity {
 
         $terms = SegmentTerms::getTermsBySegmentId($segment_id, false);
         foreach($terms as $term) {
-            $account_edit["field_pum_user_sector"]["und"][] = array('tid' => $term->tid);
+            $account_edit["field_pum_user_sector"]["und"] = array(array('tid' => $term->tid));
         }
         user_save($account, $account_edit);
     }
 
-    protected static function unsubscribe($contact_id, $segment_id) {
+    public static function unsubscribe($contact_id, $segment_id) {
         $uid = self::user_id($contact_id);
         if (!$uid) {
             return;
