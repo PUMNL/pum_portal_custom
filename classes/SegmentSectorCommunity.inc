@@ -13,7 +13,11 @@ class SegmentSectorCommunity {
             return;
         }
 
-        self::$originalContactSegment = civicrm_api3('ContactSegment', 'getsingle', array('id' => $id));
+        if ($id) {
+            self::$originalContactSegment = civicrm_api3('ContactSegment', 'getsingle', array('id' => $id));
+        } else {
+            self::$originalContactSegment = false;
+        }
     }
 
     public static function post($op, $objectName, $id, &$objectRef) {
