@@ -33,6 +33,16 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
   }
 
   if ($form_id == "user_profile_form"){
+    /* When on the profile form set the user context back to the profile form
+     * so that when the profile picture is deleted then user is going to be redirected back
+     * to the profile form.
+     */
+    civicrm_initialize();
+    $session = CRM_Core_Session::singleton();
+    $session->pushUserContext(request_uri());
+  }
+
+  if ($form_id == "user_profile_form"){
     foreach ($form as $fieldname => $field){
 
       if (substr_compare($fieldname, "field_pum_private", 0) == 0){
