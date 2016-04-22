@@ -605,6 +605,10 @@ function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef
     SegmentTaxonomy::post($op, $objectName, $objectId, $objectRef);
 }
 
+function pum_portal_custom_user_update(&$edit, $account, $category) {
+  SegmentSectorCommunity::subscribe_main_sector($account->uid);
+}
+
 function _pum_portal_custom_digest_all($force = false)
 {
   mailsystem_set(array(

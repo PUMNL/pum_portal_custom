@@ -6,7 +6,10 @@
  */
 class SegmentSectorCommunity {
 
+    private static $is_running = false;
+
     public static function subscribe($contact_id, $segment_id) {
+        self::$is_running = true;
         $uid = self::user_id($contact_id);
         if (!$uid) {
             return;
@@ -23,6 +26,7 @@ class SegmentSectorCommunity {
     }
 
     public static function unsubscribe($contact_id, $segment_id) {
+        self::$is_running = true;
         $uid = self::user_id($contact_id);
         if (!$uid) {
             return;
@@ -42,6 +46,40 @@ class SegmentSectorCommunity {
             }
         }
         user_save($account, $account_edit);
+    }
+
+    public static function subscribe_main_sector($user_id) {
+        if (self::$is_running) {
+            return;
+        }
+        $contact_id = self::contact_id($user_id);
+        if (!$contact_id) {
+            return;
+        }
+
+        $main_segment_id = false;
+        try {
+            $main_segment_id = civicrm_api3('ContactSegment', 'getvalue', array('contact_id' => $contact_id, 'is_main' => '1', 'return' => 'segment_id'));
+        } catch (Exception $e) {
+            // Do nothing.
+        }
+        if (!$main_segment_id) {
+            return;
+        }
+
+        self::subscribe($contact_id, $main_segment_id);
+    }
+
+    protected static function contact_id($user_id) {
+        try {
+            return civicrm_api3('UFMatch', 'getvalue', array(
+              'uf_id' => $user_id,
+              'return' => 'contact_id',
+            ));
+        } catch (Exception $e) {
+            //do nothing
+        }
+        return false;
     }
 
     protected static function user_id($contact_id) {
