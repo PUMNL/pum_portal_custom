@@ -4,6 +4,7 @@
 //Get a default taxonomy item for node_add
 
 function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
+  global $user;
 //  print $form_id;
   if ($form_id == "pum_forum_item_node_form" || $form_id == "pum_portal_blog_node_form" || $form_id == "pum_portal_document_node_form" || $form_id == "pum_portal_news_node_form"){
 //     print_r($form['field_pum_country']);
@@ -32,14 +33,19 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
     $form['#validate'][] = '_pum_portal_custom_required_fields';
   }
 
-  if ($form_id == "user_profile_form"){
+  if ($form_id == "user_profile_form" && $user && $user->uid == $form_state['user']->uid){
+    $redirectUrl = 'user/'.$user->uid;
+    /* Add a submit handler which will set a redirect back to the profile form.
+     * See also issue #3272 (http://redmine.pum.nl/issues/3272)
+     */
+    $form['actions']['submit']['#submit'][] = 'pum_portal_custom_profile_submit';
     /* When on the profile form set the user context back to the profile form
      * so that when the profile picture is deleted then user is going to be redirected back
      * to the profile form.
      */
     civicrm_initialize();
     $session = CRM_Core_Session::singleton();
-    $session->pushUserContext(request_uri());
+    $session->pushUserContext($redirectUrl);
   }
 
   if ($form_id == "user_profile_form"){
@@ -68,6 +74,19 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
   if ($form_id == "merci_reservation_node_form") {
 	  $form['actions']['submit']['#value'] = t('Submit');
   }
+}
+
+/**
+ * Add a redirect back to the profile view when a user has edited his or her own account.
+ *
+ * See also issue #3272 (http://redmine.pum.nl/issues/3272)
+ *
+ * @param $form
+ * @param $form_state
+ */
+function pum_portal_custom_profile_submit($form, &$form_state) {
+  global $user;
+  $form_state['redirect'] = 'user/'.$user->uid;
 }
 
 //*One of the pum_portal fields is required*//
