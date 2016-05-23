@@ -8,14 +8,14 @@ class SegmentSectorCommunity {
 
     private static $is_running = false;
 
-    public static function subscribe($contact_id, $segment_id) {
+    public static function subscribe($contact_id, $segment_id, $edit=array()) {
         self::$is_running = true;
         $uid = self::user_id($contact_id);
         if (!$uid) {
             return;
         }
         $account = user_load($uid);
-        $account_edit = array();
+        $account_edit = $edit;
         $account_edit["field_pum_user_sector"] = $account->field_pum_user_sector;
 
         $terms = SegmentTerms::getTermsBySegmentId($segment_id, false);
@@ -48,7 +48,7 @@ class SegmentSectorCommunity {
         user_save($account, $account_edit);
     }
 
-    public static function subscribe_main_sector($user_id) {
+    public static function subscribe_main_sector($user_id, $edit=array()) {
         if (self::$is_running) {
             return;
         }
@@ -67,7 +67,7 @@ class SegmentSectorCommunity {
             return;
         }
 
-        self::subscribe($contact_id, $main_segment_id);
+        self::subscribe($contact_id, $main_segment_id, $edit);
     }
 
     protected static function contact_id($user_id) {

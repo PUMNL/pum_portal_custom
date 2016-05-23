@@ -640,7 +640,7 @@ function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef
 }
 
 function pum_portal_custom_user_update(&$edit, $account, $category) {
-  SegmentSectorCommunity::subscribe_main_sector($account->uid);
+  SegmentSectorCommunity::subscribe_main_sector($account->uid, $edit);
 }
 
 function _pum_portal_custom_digest_all($force = false)
