@@ -25,7 +25,10 @@ class SegmentTaxonomy
      * @param $params
      */
     protected static function unlinkTaxonomyTerm($op, $objectName, $id, $params) {
-        if ($objectName != 'Segment' && $op != 'delete') {
+        if ($objectName != 'Segment') {
+            return;
+        }
+        if ($op != 'delete') {
             return;
         }
 
@@ -45,7 +48,10 @@ class SegmentTaxonomy
      * @param $objectRef
      */
     protected static function setSectorCoordinator($op, $objectName, $id, &$objectRef) {
-        if ($objectName != 'ContactSegment' && ($op != 'create' || $op !='edit')) {
+        if ($objectName != 'ContactSegment') {
+            return;
+        }
+        if ($op != 'create' && $op !='edit') {
             return;
         }
 
@@ -74,7 +80,10 @@ class SegmentTaxonomy
      * @param $objectRef
      */
     protected static function updateTaxonomyTermName($op, $objectName, $id, &$objectRef) {
-        if ($objectName != 'Segment' || ($op != 'create' && $op != 'edit')) {
+        if ($objectName != 'Segment') {
+            return;
+        }
+        if ($op != 'create' && $op != 'edit') {
             return;
         }
 
