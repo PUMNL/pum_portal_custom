@@ -989,4 +989,74 @@ function _pum_portal_custom_get_recent_nodes($type,$days, $usertags){
 
 }
 
+function pum_portal_custom_views_query_alter(&$view, &$query) {
+  global $user;
+  $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents');
+  if (in_array($view->name, $viewNamesToRestrict) && $user->uid) {
+    /**
+     * Add a where statement to include only forum topics which are not linked
+     * to a private a community or which are linked to a private community from
+     * which a user has access to.
+     */
+    $account = user_load($user->uid);
+    $user_private_communities = array();
+    if (!empty($account->field_pum_private['und'])) {
+      foreach ($account->field_pum_private['und'] as $userterm) {
+        $user_private_communities[] = $userterm['tid'];
+      }
+    }
+    $user_private_communities = array(767);
+    $vocabulary = taxonomy_vocabulary_machine_name_load('private_group');
+    $private_communities = entity_load('taxonomy_term', FALSE, array('vid' => $vocabulary->vid));
+    $no_access_communities = array();
+    foreach($private_communities as $term) {
+      if (!in_array($term->tid, $user_private_communities)) {
+        $no_access_communities[] = $term->tid;
+      }
+    }
+
+    $join = new views_join;
+    $join->construct('field_data_field_pum_private',
+      'node',  // left table
+      'nid',   // left field
+      'entity_id',   // field,
+      array(array(
+        'field' => 'entity_type',
+        'value' =>'node',
+      ),array(
+        'field' => 'deleted',
+        'value' =>'0',
+      )),
+      'LEFT'
+    );
+
+    $max_key = max( array_keys($query->where));
+    $view->query->add_relationship('field_data_field_pum_private',$join,'node');
+    $query->add_where($max_key, 'field_data_field_pum_private.field_pum_private_tid', $no_access_communities, 'NOT IN');
+  }
+}
+
+function pum_portal_custom_node_access($node, $op, $account) {
+  if (is_string($node)) {
+    return NODE_ACCESS_IGNORE;
+  }
+  if ($op != 'view') {
+    return NODE_ACCESS_IGNORE;
+  }
+  $nodeType = $node->type;
+  $restrictedNodeTypes = array('pum_forum_item', 'pum_portal_document', 'pum_portal_blog');
+  if (in_array($nodeType, $restrictedNodeTypes) && count($node->field_pum_private['und'])) {
+    $user = user_load($account->uid);
+    // Check whether the user has access to the private community.
+    foreach($node->field_pum_private['und'] as $term) {
+      foreach($user->field_pum_private['und'] as $userterm) {
+        if ($term['tid'] == $userterm['tid']) {
+          return NODE_ACCESS_ALLOW;
+        }
+      }
+    }
+    return NODE_ACCESS_DENY;
+  }
+  return NODE_ACCESS_IGNORE;
+}
 
