@@ -1032,7 +1032,12 @@ function pum_portal_custom_views_query_alter(&$view, &$query) {
 
     $max_key = max( array_keys($query->where));
     $view->query->add_relationship('field_data_field_pum_private',$join,'node');
-    $query->add_where($max_key, 'field_data_field_pum_private.field_pum_private_tid', $no_access_communities, 'NOT IN');
+
+    $conditions = db_or();
+    $conditions->condition('field_data_field_pum_private.field_pum_private_tid', $no_access_communities, 'NOT IN');
+    $conditions->condition('field_data_field_pum_private.field_pum_private_tid', '', 'IS NULL');
+
+    $query->add_where($max_key, $conditions);
   }
 }
 
