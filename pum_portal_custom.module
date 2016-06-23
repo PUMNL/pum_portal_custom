@@ -50,6 +50,13 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
     /* Add a submit handler which will set a redirect back to the profile form.
      * See also issue #3272 (http://redmine.pum.nl/issues/3272)
      */
+    if (!isset($form['actions']['submit']['#submit']) || empty($form['actions']['submit']['#submit'])) {
+      /* Issue #3440 user coould not change its passwords.
+       * This was caused by the fact the original submit handler was not
+       * invoked. So the changes on the profile pages are not submitted.
+       */
+      $form['actions']['submit']['#submit'][] = 'user_profile_form_submit';
+    }
     $form['actions']['submit']['#submit'][] = 'pum_portal_custom_profile_submit';
     /* When on the profile form set the user context back to the profile form
      * so that when the profile picture is deleted then user is going to be redirected back
