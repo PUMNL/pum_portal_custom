@@ -646,7 +646,7 @@ function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef
     SegmentTaxonomy::post($op, $objectName, $objectId, $objectRef);
 }
 
-function pum_portal_custom_user_update(&$edit, $account, $category) {
+function pum_portal_custom_user_presave(&$edit, $account, $category) {
   SegmentSectorCommunity::subscribe_main_sector($account->uid, $edit);
 }
 

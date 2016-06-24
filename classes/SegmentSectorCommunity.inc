@@ -48,10 +48,7 @@ class SegmentSectorCommunity {
         user_save($account, $account_edit);
     }
 
-    public static function subscribe_main_sector($user_id, $edit=array()) {
-        if (self::$is_running) {
-            return;
-        }
+    public static function subscribe_main_sector($user_id, &$edit) {
         $contact_id = self::contact_id($user_id);
         if (!$contact_id) {
             return;
@@ -60,14 +57,16 @@ class SegmentSectorCommunity {
         $main_segment_id = false;
         try {
             $main_segment_id = civicrm_api3('ContactSegment', 'getvalue', array('contact_id' => $contact_id, 'is_main' => '1', 'return' => 'segment_id'));
+            $terms = SegmentTerms::getTermsBySegmentId($main_segment_id, false);
+            foreach($terms as $term) {
+                $edit["field_pum_user_sector"]["und"] = array(array('tid' => $term->tid));
+            }
         } catch (Exception $e) {
             // Do nothing.
         }
         if (!$main_segment_id) {
             return;
         }
-
-        self::subscribe($contact_id, $main_segment_id, $edit);
     }
 
     protected static function contact_id($user_id) {
