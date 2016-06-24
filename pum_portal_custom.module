@@ -46,7 +46,7 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
   }
 
   if ($form_id == "user_profile_form" && $user && $user->uid == $form_state['user']->uid){
-    $redirectUrl = 'user/'.$user->uid;
+    $redirectUrl = '/user/'.$user->uid;
     /* Add a submit handler which will set a redirect back to the profile form.
      * See also issue #3272 (http://redmine.pum.nl/issues/3272)
      */
