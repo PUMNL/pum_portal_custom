@@ -1012,7 +1012,6 @@ function pum_portal_custom_views_query_alter(&$view, &$query) {
         $user_private_communities[] = $userterm['tid'];
       }
     }
-    $user_private_communities = array(767);
     $vocabulary = taxonomy_vocabulary_machine_name_load('private_group');
     $private_communities = entity_load('taxonomy_term', FALSE, array('vid' => $vocabulary->vid));
     $no_access_communities = array();
