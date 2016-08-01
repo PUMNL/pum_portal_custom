@@ -55,6 +55,7 @@ class SegmentTaxonomy
             return;
         }
 
+        civicrm_initialize();
         $civicoop_segment_role_option_group = civicrm_api3('OptionGroup', 'getvalue', array('name' => 'civicoop_segment_role', 'return' => 'id'));
         $sc_role = civicrm_api3('OptionValue', 'getvalue', array('option_group_id' => $civicoop_segment_role_option_group, 'name' => 'sector_coordinator', 'return' => 'value'));
 
@@ -110,6 +111,7 @@ class SegmentTaxonomy
     }
 
     protected static function getSectorCoordinatorId($segment_id) {
+        civicrm_initialize();
         $civicoop_segment_role_option_group = civicrm_api3('OptionGroup', 'getvalue', array('name' => 'civicoop_segment_role', 'return' => 'id'));
         $role = civicrm_api3('OptionValue', 'getvalue', array('option_group_id' => $civicoop_segment_role_option_group, 'name' => 'sector_coordinator', 'return' => 'value'));
         try {

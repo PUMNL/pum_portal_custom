@@ -56,6 +56,7 @@ class SegmentSectorCommunity {
 
         $main_segment_id = false;
         try {
+            civicrm_initialize();
             $main_segment_id = civicrm_api3('ContactSegment', 'getvalue', array('contact_id' => $contact_id, 'is_main' => '1', 'return' => 'segment_id'));
             $terms = SegmentTerms::getTermsBySegmentId($main_segment_id, false);
             foreach($terms as $term) {
@@ -71,6 +72,7 @@ class SegmentSectorCommunity {
 
     protected static function contact_id($user_id) {
         try {
+            civicrm_initialize();
             return civicrm_api3('UFMatch', 'getvalue', array(
               'uf_id' => $user_id,
               'return' => 'contact_id',
@@ -83,6 +85,7 @@ class SegmentSectorCommunity {
 
     protected static function user_id($contact_id) {
         try {
+            civicrm_initialize();
             return civicrm_api3('UFMatch', 'getvalue', array(
                 'contact_id' => $contact_id,
                 'return' => 'uf_id',

@@ -627,6 +627,7 @@ function pum_portal_custom_add_taxonomy_item(&$user, $context) {
 }
 
 function pum_portal_custom_civicrm_update_sector_community($contact_segment_id, $is_main) {
+  civicrm_initialize();
   $contact_segment = civicrm_api3('ContactSegment', 'getsingle', array('id' => $contact_segment_id));
   if ($contact_segment['is_main']) {
     SegmentSectorCommunity::subscribe($contact_segment['contact_id'], $contact_segment['segment_id']);
