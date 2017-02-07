@@ -17,32 +17,25 @@
 
 function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
   global $user;
-//  print $form_id;
+
   if ($form_id == "pum_forum_item_node_form" || $form_id == "pum_portal_blog_node_form" || $form_id == "pum_portal_document_node_form" || $form_id == "pum_portal_news_node_form"){
-//     print_r($form['field_pum_country']);
-     
-     
-     $field = 'field_pum_country';
-     $value = isset($_GET["term"])? intval($_GET["term"]) : 0;
+    $field = 'field_pum_country';
+    $value = isset($_GET["term"])? intval($_GET["term"]) : 0;
  
-     foreach ($form as $fieldname => $field)
-     {
-        if (substr_compare($fieldname, "field_pum", 0, 9) == 0){
-          if (is_array($field['und']['#default_value']) && is_array($field['und']['#options']) && $value > 0) {
-            if (array_key_exists($value, $field['und']['#options'])) {
-              $form[$fieldname]['und']['#default_value'] = array($value); 
-            } 
+    foreach ($form as $fieldname => $field) {
+      if (substr_compare($fieldname, "field_pum", 0, 9) == 0) {
+        if (is_array($field['und']['#default_value']) && is_array($field['und']['#options']) && $value > 0) {
+          if (array_key_exists($value, $field['und']['#options'])) {
+            $form[$fieldname]['und']['#default_value'] = array($value);
           }
         }
-        if (substr_compare($fieldname, "field_pum_private", 0) == 0){
+      }
 
-          $form[$fieldname]['#disabled'] = TRUE;                                                                                                                                 
-          isset($form[$fieldname]['#attributes']['style'])?$form[$fieldname]['#attributes']['style'] .= "display:none;":$form[$fieldname]['#attributes']['style']="display:none"; 
-        }
-
+      if (substr_compare($fieldname, "field_pum_private", 0) == 0) {
+        $form[$fieldname]['#disabled'] = TRUE;
+        isset($form[$fieldname]['#attributes']['style'])?$form[$fieldname]['#attributes']['style'] .= "display:none;":$form[$fieldname]['#attributes']['style']="display:none"; 
+      }
     }
-   //Add check for required fields
-    $form['#validate'][] = '_pum_portal_custom_required_fields';
   }
 
   if ($form_id == "user_profile_form" && $user && $user->uid == $form_state['user']->uid){
@@ -107,21 +100,6 @@ function pum_portal_custom_profile_submit($form, &$form_state) {
   global $user;
   $form_state['redirect'] = 'user/'.$user->uid;
 }
-
-//*One of the pum_portal fields is required*//
-function _pum_portal_custom_required_fields($form, &$form_state) {
-//    form_set_error('title', "validate".print_r($form_state["values"],true));
-      $country = isset($form_state["values"]["field_pum_country"]["und"][0]["tid"])?$form_state["values"]["field_pum_country"]["und"][0]["tid"]:0;
-      $sector = isset($form_state["values"]["field_pum_sector"]["und"][0]["tid"])?$form_state["values"]["field_pum_sector"]["und"][0]["tid"]:0;
-      $generic =  isset($form_state["values"]["field_pum_generic"]["und"][0]["tid"])?$form_state["values"]["field_pum_generic"]["und"][0]["tid"]:0;
-      $private =  isset($form_state["values"]["field_pum_private"]["und"][0]["tid"])?$form_state["values"]["field_pum_private"]["und"][0]["tid"]:0;
-
-      if ($country <= 0 && $sector <= 0 && $generic <=0 && $private <=0){
-          form_set_error('field_pum_country', "At least one of the Community fields is required: Country, Sector, Generic");
-      }
-}
-
-
 
 /**
  * Implements hook_menu().
