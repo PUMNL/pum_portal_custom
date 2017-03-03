@@ -977,7 +977,7 @@ function _pum_portal_custom_get_recent_nodes($type,$days, $usertags){
 
 function pum_portal_custom_views_query_alter(&$view, &$query) {
   global $user;
-  $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents');
+  $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents', 'latest_portal_news');
   if (in_array($view->name, $viewNamesToRestrict) && $user->uid) {
     /**
      * Add a where statement to include only forum topics which are not linked
