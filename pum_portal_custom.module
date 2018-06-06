@@ -1,24 +1,8 @@
 <?php
-
-/*function pum_portal_menu_alter(&$items) {
-  return $items;
-}*/
-
-/*function pum_portal_custom_ctools_plugin_pre_alter(&$plugin, &$info) {
-  // Override a function defined by the plugin.
-  var_dump($plugin); var_dump($info);
-  if ($info['type'] == 'my_type') {
-    $plugin['my_flag'] = 'new_value';
-  }
-}*/
-
-
-//Get a default taxonomy item for node_add
-
-function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
+function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
   global $user;
 
-  if ($form_id == "pum_forum_item_node_form" || $form_id == "pum_portal_blog_node_form" || $form_id == "pum_portal_document_node_form" || $form_id == "pum_portal_news_node_form"){
+  if ($form_id == "pum_forum_item_node_form" || $form_id == "pum_portal_blog_node_form" || $form_id == "pum_portal_document_node_form" || $form_id == "pum_portal_news_node_form") {
     $field = 'field_pum_country';
     $value = isset($_GET["term"])? intval($_GET["term"]) : 0;
 
@@ -38,7 +22,7 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
     }
   }
 
-  if ($form_id == "user_profile_form" && $user && $user->uid == $form_state['user']->uid){
+  if ($form_id == "user_profile_form" && $user && $user->uid == $form_state['user']->uid) {
     $redirectUrl = '/user/'.$user->uid;
     /* Add a submit handler which will set a redirect back to the profile form.
      * See also issue #3272 (http://redmine.pum.nl/issues/3272)
@@ -60,24 +44,21 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id){
     $session->pushUserContext($redirectUrl);
   }
 
-  if ($form_id == "user_profile_form"){
-    foreach ($form as $fieldname => $field){
-
-      if (substr_compare($fieldname, "field_pum_private", 0) == 0){
-
+  if ($form_id == "user_profile_form") {
+    foreach ($form as $fieldname => $field) {
+      if (substr_compare($fieldname, "field_pum_private", 0) == 0) {
         $form[$fieldname]['#disabled'] = TRUE;
         isset($form[$fieldname]['#attributes']['style'])?$form[$fieldname]['#attributes']['style'] .= "display:none;":$form[$fieldname]['#attributes']['style']="display:none";
       }
     }
   }
-  if ($form_id == "user_profile_form" || $form_id == "user_edit")
-  {
-    foreach ($form as $fieldname => $field){
+  if ($form_id == "user_profile_form" || $form_id == "user_edit") {
+    foreach ($form as $fieldname => $field) {
 
-      if (substr_compare($fieldname, "field_pum", 0, 9) == 0){
+      if (substr_compare($fieldname, "field_pum", 0, 9) == 0) {
          $form[$fieldname]['#access'] = FALSE;
       }
-      if (substr_compare($fieldname, "field_last_digest", 0) == 0){
+      if (substr_compare($fieldname, "field_last_digest", 0) == 0) {
          $form[$fieldname]['#access'] = FALSE;
       }
     }
@@ -123,8 +104,7 @@ function pum_portal_custom_menu() {
   return $items;
 }
 
-function _pum_sync_settings_form ($form, &$form_state){
-
+function _pum_sync_settings_form ($form, &$form_state) {
  $form['high_school']['tests_taken'] = array(
     '#type' => 'checkboxes',
     '#options' => array("countries" => "countries"),
@@ -137,7 +117,6 @@ function _pum_sync_settings_form ($form, &$form_state){
     '#title' => t('Force reread.'),
   );
 
-
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
@@ -147,22 +126,21 @@ function _pum_sync_settings_form ($form, &$form_state){
 }
 
 function _pum_sync_settings_form_submit($form, &$form_state) {
-  // Submission logic.
+  $msg="";
+  $force = $form_state["values"]["force"] == "1"? true: false;
+  $msg .= print_r($form_state["values"],true);
 
-   $msg="";
-   $force = $form_state["values"]["force"] == "1"? true: false;
-   $msg .= print_r($form_state["values"],true);
-
-   if ( strcmp($form_state["values"]["tests_taken"]["countries"],"countries")===0) {$msg .="countries: ".$form_state["values"]["tests_taken"]["countries"] ;  _pum_portal_custom_sync_countries(false, $force); }
-
-//   drupal_set_message( $msg );
+  if ( strcmp($form_state["values"]["tests_taken"]["countries"],"countries")===0) {
+    $msg .="countries: ".$form_state["values"]["tests_taken"]["countries"];
+    _pum_portal_custom_sync_countries(false, $force);
+  }
 }
 
-function _pum_portal_custom_sync_countries($cron = false, $force = false)
-{
+function _pum_portal_custom_sync_countries($cron = false, $force = false) {
   $ret = "";
-  civicrm_initialize( );
-// get all countries
+  civicrm_initialize();
+
+  // get all countries
   $params = Array (
       'version' => 3,
       'sequential' => 1,
@@ -170,10 +148,7 @@ function _pum_portal_custom_sync_countries($cron = false, $force = false)
   );
   $result = civicrm_api('Country', 'get', $params);
 
-//get country flag
-
-//get country coordinators
-
+  //get country flag
   $params = array(
     'version' => 3,
     'sequential' => 1,
@@ -192,6 +167,7 @@ function _pum_portal_custom_sync_countries($cron = false, $force = false)
   );
   $resultcountrycontacts = civicrm_api('Contact', 'get', $params);
 
+  //get country coordinators
   $params = array(
     'version' => 3,
     'sequential' => 1,
@@ -208,69 +184,66 @@ function _pum_portal_custom_sync_countries($cron = false, $force = false)
   );
   $resultwithcoordinator = civicrm_api('Relationship', 'get', $params);
 
-// check with md5 hash
-   $md5tot = md5(print_r($result,true).print_r($resultcountrycontacts,true).print_r($resultwithcoordinator,true));
+  // check with md5 hash
+  $md5tot = md5(print_r($result,true).print_r($resultcountrycontacts,true).print_r($resultwithcoordinator,true));
 
-   $md5db = variable_get("pum_md5_country", "");
+  $md5db = variable_get("pum_md5_country", "");
 
-   if ($md5tot == $md5db && !$force){
-     watchdog("pum", "countries the same");
-     if(!$cron) drupal_set_message("countries the same");
-   }
-   else{
-      watchdog("pum", "countries updated");
-      if(!$cron) drupal_set_message("countries updated");
+  if ($md5tot == $md5db && !$force) {
+    watchdog("pum", "countries the same");
+    if(!$cron) {
+      drupal_set_message("countries the same");
+    }
+  } else {
+    watchdog("pum", "countries updated");
+    if(!$cron) {
+      drupal_set_message("countries updated");
+    }
 
-
-//if different do loop per country
-//  $ret = print_r($result,true);
-
+    //if different do loop per country
     $voc = taxonomy_vocabulary_machine_name_load("countries");
 
     if ($result["is_error"] == "0"){
       foreach($result["values"] as $country){
         $c_id = null;
         $cc_id = null;
-      //get country_contact_id
 
+        //get country_contact_id
         foreach ($resultcountrycontacts["values"] as $countrycontact){
           if (isset($countrycontact[$country_id_field]) && $countrycontact[$country_id_field] == $country["id"] ) { $c_id = $countrycontact["id"]; break; }
         }
-        if ($c_id) {
 
-        //if active coordinator:
+        if ($c_id) {
+          //if active coordinator:
           foreach ($resultwithcoordinator["values"] as $countrycoordinator){
             if ($countrycoordinator["contact_id_a"] == $c_id ) { $cc_id = $countrycoordinator["contact_id_b"]; break; }
           }
-
         }
 
         if (isset($cc_id)) {
           $terms=taxonomy_get_term_by_name($country["name"],"countries");
           if (count($terms) > 0) {
             $term = array_shift($terms);
-          }else {
-            $term = new stdClass();;
+          } else {
+            $term = new stdClass();
             $term->name = $country["name"];
           }
           $term->vid = $voc->vid;
           $term->field_country_id["und"][0]["value"] = $country["id"];
           taxonomy_term_save($term);
         }
-
-
       }
-
     }
     variable_set("pum_md5_country", $md5tot);
-
   }
-  if (!$cron) return $ret;
+  if (!$cron) {
+    return $ret;
+  }
 }
-///
+
 function pum_portal_custom_cron() {
- _pum_portal_custom_sync_countries(true);
- _pum_portal_custom_digest_all();
+  _pum_portal_custom_sync_countries(true);
+  _pum_portal_custom_digest_all();
 }
 
 /**
@@ -292,72 +265,72 @@ function pum_portal_custom_block_view($delta = '') {
   $block = array();
   switch ($delta) {
     case 'pum_term_subscription':
-        $block['subject'] = t('Subscribe');
-        $block['content'] = _pum_portal_subscription();
+      $block['subject'] = t('Subscribe');
+      $block['content'] = _pum_portal_subscription();
       break;
   }
   return $block;
 }
 
-
-function _pum_portal_subscription(){
-   $term = array();
-// are we on term page??
-   $term[0] = menu_get_object('taxonomy_term', 2);
-   if (!isset($term[0]->tid)) {
-   // Try to get it without menu_get_object().
-     if (arg(0) == 'taxonomy' && arg(1) == 'term' && arg(2)) {
-       $term[0] = taxonomy_term_load(arg(2));
-     }
+function _pum_portal_subscription() {
+  $term = array();
+  // are we on term page??
+  $term[0] = menu_get_object('taxonomy_term', 2);
+  if (!isset($term[0]->tid)) {
+    // Try to get it without menu_get_object().
+    if (arg(0) == 'taxonomy' && arg(1) == 'term' && arg(2)) {
+      $term[0] = taxonomy_term_load(arg(2));
+    }
   }
 
- if (!(isset($term[0]) && is_object($term[0]))) {
-   $term = array();
+  if (!(isset($term[0]) && is_object($term[0]))) {
+    $term = array();
 
-//are we on a node page with terms?
-   $node = menu_get_object();
-   $tids=array();
-   if (is_object($node)) foreach ($node as $fieldname => $fieldvalue){
-     if (substr_compare($fieldname, "field_pum_", 0,10)==0) {
+    //are we on a node page with terms?
+    $node = menu_get_object();
+    $tids = array();
 
-        if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])){
-            foreach($fieldvalue["und"] as $vals){
-              if (isset($vals["taxonomy_term"])){
-              	  $term[]=$vals["taxonomy_term"];
-              }
+    if (is_object($node)) foreach ($node as $fieldname => $fieldvalue) {
+      if (substr_compare($fieldname, "field_pum_", 0,10) == 0) {
+        if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])) {
+          foreach($fieldvalue["und"] as $vals) {
+            if (isset($vals["taxonomy_term"])) {
+              $term[]=$vals["taxonomy_term"];
             }
+          }
         }
-     }
-   }
+      }
+    }
   }
   //if no terms are found: return empty block
-  if (!(isset($term[0]) && is_object($term[0]))) return;
+  if (!(isset($term[0]) && is_object($term[0]))) {
+    return;
+  }
 
   return drupal_get_form("_pum_portal_subscription_form", $term);
 }
 
+function _pum_portal_subscription_form($form, &$form_state) {
+  $term = $form_state['build_info']['args'][0];
 
-function _pum_portal_subscription_form($form, &$form_state){
-
-   $term = $form_state['build_info']['args'][0];
-
-//user subscribed terms
+  //user subscribed terms
   global $user;
   $account = user_load($user->uid);
-  $tids=array();
-  foreach ($account as $fieldname => $fieldvalue){
+  $tids = array();
+  foreach ($account as $fieldname => $fieldvalue) {
     if (substr_compare($fieldname, "field_", 0,6)==0) {
-        if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])){
-            foreach($fieldvalue["und"] as $vals){
-              if (isset($vals["tid"])) $tids[$vals["tid"]]=$vals["tid"];
-            }
+      if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])) {
+        foreach($fieldvalue["und"] as $vals){
+          if (isset($vals["tid"])) {
+            $tids[$vals["tid"]]=$vals["tid"];
+          }
         }
+      }
     }
   }
 
-
   if (isset($term[0]) && is_object($term[0])) {
-    foreach ($term as $t){
+    foreach ($term as $t) {
       $form['subscribe']['subscribe_'.$t->tid] = array(
         '#type' => 'checkbox',
         '#title' => $t->name,
@@ -365,138 +338,119 @@ function _pum_portal_subscription_form($form, &$form_state){
       );
     }
 
-
-
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Save'),
     );
+
     return $form;
-
-
-  }
-  else {
+  } else {
    return false;
   }
-
 }
 
-function _pum_portal_subscription_form_submit($form, &$form_state){
+function _pum_portal_subscription_form_submit($form, &$form_state) {
   $msg = "";
   //get values and default values, when changed: do something
-
   $term = $form_state['build_info']['args'][0];
-
- // $msg .= print_r($term,true);
 
   global $user;
   $account = user_load($user->uid);
-  $accountchanged = false;
+  $accountchanged = FALSE;
   $tids=array();
 
-//  $msg .= print_r($account,true);
-  foreach ($account as $fieldname => $fieldvalue){
+  foreach ($account as $fieldname => $fieldvalue) {
     if (substr_compare($fieldname, "field_", 0,6)==0) {
-    //    $msg .= $fieldname.": ".print_r($fieldvalue,true);
-        if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])){
-            foreach($fieldvalue["und"] as $vals){
-              if (isset($vals["tid"])) $tids[$vals["tid"]]=$vals["tid"];
-            }
+      if (isset($fieldvalue["und"]) && is_array($fieldvalue["und"])) {
+        foreach($fieldvalue["und"] as $vals) {
+          if (isset($vals["tid"])) {
+            $tids[$vals["tid"]]=$vals["tid"];
+          }
         }
+      }
     }
   }
 
-   $account_edit = array();
-   $account_edit["field_pum_country"] = $account->field_pum_country;
-   $account_edit["field_pum_sector"] = $account->field_pum_sector;
-   $account_edit["field_pum_generic"] = $account->field_pum_generic;
-   $account_edit["field_pum_private"] = $account->field_pum_private;
+  $account_edit = array();
+  $account_edit["field_pum_country"] = $account->field_pum_country;
+  $account_edit["field_pum_sector"] = $account->field_pum_sector;
+  $account_edit["field_pum_generic"] = $account->field_pum_generic;
+  $account_edit["field_pum_private"] = $account->field_pum_private;
 
+  foreach($form_state["values"] as $name => $value) {
+    if (strpos($name, "subscribe_") === 0) {
+      $tid = str_replace("subscribe_","", $name);
+      $voc = "";
+      foreach($term as $t) {
+        if ($t->tid == $tid) {
+          $voc = $t->vocabulary_machine_name;
 
+          if ($voc == "countries") {
+            $fieldname = "field_pum_country";
+          } elseif ($voc == "pum_generic") {
+            $fieldname = "field_pum_generic";
+          } elseif ($voc == "sector") {
+            $fieldname = "field_pum_sector";
+          } else {
+            continue;
+          }
 
-   foreach($form_state["values"] as $name => $value){
-  //    $msg .= " ".$name." :".print_r($value,true);
-      if (strpos($name, "subscribe_") === 0){
-        $tid = str_replace("subscribe_","", $name);
-        $voc = "";
-        foreach($term as $t)
-        {
-            if ($t->tid == $tid) {
-               $voc = $t->vocabulary_machine_name;
-
-               if ($voc == "countries") $fieldname = "field_pum_country";
-               elseif ($voc == "pum_generic") $fieldname = "field_pum_generic";
-               elseif ($voc == "sector") $fieldname = "field_pum_sector";
-               else continue;
-
-
-               if ($value == 1) { //add if not active
-
-                   $found = false;
-                   if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
-                         if ($val["tid"] == $tid) $found = true;
-                   }
-                   if (!$found) {
-                        if (!isset($account_edit[$fieldname]["und"])) $account_edit[$fieldname]["und"] = array();
-                        $account_edit[$fieldname]["und"][]=array("tid" => $tid);
-                        $accountchanged = true;
-                   }
-               }
-               else { //delete if active
-                   $found = false;
-                   $foundnr = -1;
-                   if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
-                         if ($val["tid"] == $tid) {
-                             $found = true;
-                             $foundnr = $nr;
-                         }
-                   }
-                   if ($found) {
-			array_splice($account_edit[$fieldname]["und"],$foundnr,1);
-                        $accountchanged = true;
-                   }
-
-               }
-
-
+          if ($value == 1) { //add if not active
+            $found = FALSE;
+            if ($fieldname && isset($account_edit[$fieldname]["und"])) {
+              foreach ($account_edit[$fieldname]["und"] as $nr => $val) {
+                if ($val["tid"] == $tid) {
+                  $found = TRUE;
+                }
+              }
+              if ($found == FALSE && !isset($account_edit[$fieldname]["und"])) {
+                  $account_edit[$fieldname]["und"] = array();
+                  $account_edit[$fieldname]["und"][]=array("tid" => $tid);
+                  $accountchanged = TRUE;
+              }
+            } else {
+              //delete if active
+              $found = FALSE;
+              $foundnr = -1;
+              if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
+                if ($val["tid"] == $tid) {
+                  $found = TRUE;
+                  $foundnr = $nr;
+                }
+              }
+              if ($found == TRUE) {
+                array_splice($account_edit[$fieldname]["und"],$foundnr,1);
+                $accountchanged = TRUE;
+              }
             }
+          }
         }
-     //   $msg .= " ".$voc." ".$tid." :".$value;
-     //   $msg .= "user after:".print_r($account_edit,true);
-
-   // get user ,change only this tid, save user
       }
-
-   }
-   if ($accountchanged) {
-
-     user_save($account, $account_edit);
-     $msg ="Subscriptions updated";
-   }
-   drupal_set_message( $msg );
-}
-
-/*
-* make  sure nodes pum_portal nodes are only viewable by people with the right permissions
-*
-*/
-function pum_portal_custom_node_grants_alter(&$grants, $account, $op){
-
-  if ($account->uid == 0){
-     $i = 0;
-     foreach ($grants as $gid => $grant){
-         if ($gid == "abt_field_pum_private"){
-           //  watchdog("debug" , "ppcnga".print_r($grant,true));
-             array_splice($grants, $i, 1);
-         }
-         $i++;
-     }
+    }
   }
 
+  if ($accountchanged == TRUE) {
+    user_save($account, $account_edit);
+    $msg = "Subscriptions updated";
+    drupal_set_message($msg);
+  }
 }
 
-
+/**
+* Make sure nodes pum_portal nodes are only viewable by people with the right permissions
+*/
+function pum_portal_custom_node_grants_alter(&$grants, $account, $op){
+  if ($account->uid == 0) {
+    $i = 0;
+    foreach ($grants as $gid => $grant) {
+      if ($gid == "abt_field_pum_private") {
+        array_splice($grants, $i, 1);
+      }
+      $i++;
+    }
+  }
+}
 
 function pum_portal_custom_action_info() {
   return array(
@@ -521,7 +475,6 @@ function pum_portal_custom_action_info() {
   );
 }
 
-
 function pum_portal_custom_delete_taxonomy_item(&$user, $context) {
   if (isset($context["view_info"]["arguments"][0])) {
     $term = $context["view_info"]["arguments"][0]?$context["view_info"]["arguments"][0]:-1;
@@ -533,38 +486,35 @@ function pum_portal_custom_delete_taxonomy_item(&$user, $context) {
     $account_edit[$fieldname] = $user->field_pum_private;
 
     if ($oterm->vocabulary_machine_name == "pum_generic") {
-       $fieldname="field_pum_generic";
-       $account_edit[$fieldname] = $user->field_pum_generic;
+      $fieldname="field_pum_generic";
+      $account_edit[$fieldname] = $user->field_pum_generic;
     }
 
     if (!isset($account_edit[$fieldname]) ||
-       !isset($account_edit[$fieldname]["und"]))
-    $account_edit[$fieldname]["und"] = array();
+       !isset($account_edit[$fieldname]["und"])) {
+      $account_edit[$fieldname]["und"] = array();
+    }
 
-    $found = false;
+    $found = FALSE;
     $foundnr = -1;
-    $accountchanged=false;
+    $accountchanged = FALSE;
     if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
       if ($val["tid"] == $term) {
-        $found = true;
+        $found = TRUE;
         $foundnr = $nr;
       }
     }
-    if ($found) {
+    if ($found == TRUE) {
       array_splice($account_edit[$fieldname]["und"],$foundnr,1);
-      $accountchanged = true;
+      $accountchanged = TRUE;
     }
-    if ($accountchanged) {
-
+    if ($accountchanged == TRUE) {
       user_save($user, $account_edit);
-    //  $msg ="Subscriptions updated";
     }
-
   }
 }
 
 function pum_portal_custom_add_taxonomy_item(&$user, $context) {
-
   if (isset($context["view_info"]["arguments"][0])) {
     $term = $context["view_info"]["arguments"][0]?$context["view_info"]["arguments"][0]:-1;
     $oterm = taxonomy_term_load($term);
@@ -575,32 +525,36 @@ function pum_portal_custom_add_taxonomy_item(&$user, $context) {
     $account_edit[$fieldname] = $user->field_pum_private;
 
     if ($oterm->vocabulary_machine_name == "pum_generic") {
-       $fieldname="field_pum_generic";
-       $account_edit[$fieldname] = $user->field_pum_generic;
+      $fieldname="field_pum_generic";
+      $account_edit[$fieldname] = $user->field_pum_generic;
     }
 
-    if (!isset($account_edit[$fieldname]) ||
-       !isset($account_edit[$fieldname]["und"]))
-    $account_edit[$fieldname]["und"] = array();
-
-    $found = false;
-    if ($fieldname && isset($account_edit[$fieldname]["und"])) foreach ($account_edit[$fieldname]["und"] as $nr => $val){
-      if ($val["tid"] == $term) $found = true;
+    if (!isset($account_edit[$fieldname]) || !isset($account_edit[$fieldname]["und"])) {
+      $account_edit[$fieldname]["und"] = array();
     }
-    if (!$found) {
-      if (!isset($account_edit[$fieldname]["und"])) $account_edit[$fieldname]["und"] = array();
+
+    $found = FALSE;
+    $accountchanged = FALSE;
+
+    if ($fieldname && isset($account_edit[$fieldname]["und"])) {
+      foreach ($account_edit[$fieldname]["und"] as $nr => $val) {
+        if ($val["tid"] == $term) {
+          $found = TRUE;
+        }
+      }
+    }
+
+    if ($found == FALSE) {
+      if (!isset($account_edit[$fieldname]["und"])) {
+        $account_edit[$fieldname]["und"] = array();
+      }
       $account_edit[$fieldname]["und"][]=array("tid" => $term);
-      $accountchanged = true;
+      $accountchanged = TRUE;
     }
 
-    if ($accountchanged) {
-
-     user_save($user, $account_edit);
-   //  $msg ="Subscriptions updated";
-   }
-
-
-
+    if ($accountchanged == TRUE) {
+      user_save($user, $account_edit);
+    }
   }
 }
 
@@ -615,104 +569,96 @@ function pum_portal_custom_civicrm_update_sector_community($contact_segment_id, 
 }
 
 function pum_portal_custom_civicrm_pre($op, $objectName, $objectId, &$params) {
-    SegmentTaxonomy::pre($op, $objectName, $objectId, $params);
+  SegmentTaxonomy::pre($op, $objectName, $objectId, $params);
 }
 
 //*hook_civicrm_post
 
-function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef)
-{
-    SegmentTaxonomy::post($op, $objectName, $objectId, $objectRef);
+function pum_portal_custom_civicrm_post($op, $objectName, $objectId, &$objectRef) {
+  SegmentTaxonomy::post($op, $objectName, $objectId, $objectRef);
 }
 
 function pum_portal_custom_user_presave(&$edit, $account, $category) {
   SegmentSectorCommunity::subscribe_main_sector($account->uid, $edit);
 }
 
-function _pum_portal_custom_digest_all($force = false)
-{
+function _pum_portal_custom_digest_all($force = false) {
   mailsystem_set(array(
     'pum_portal_custom_digest' => 'MimeMailSystem', // Just messages with $key sent by $module.
   ));
 
+  //get all users who requested an email
+  $query = new EntityFieldQuery();
+  $users = $query->entityCondition('entity_type', 'user')
+  ->propertyCondition('status', '1')
+  ->fieldCondition('field_email_frequency', 'value', 1,  '>=')
+  ->addMetaData('account', user_load(1))
+  ->execute();
 
-   //get all users who requested an email
-      $query = new EntityFieldQuery();
-      $users = $query->entityCondition('entity_type', 'user')
-      ->propertyCondition('status', '1')
-      ->fieldCondition('field_email_frequency', 'value', 1,  '>=')
-      ->addMetaData('account', user_load(1))
-      ->execute();
+  foreach ($users["user"] as $uid => $user) {
+    //per user
+    $account = user_load($uid);
 
- //    print_r($users);
-
-     foreach ($users["user"] as $uid => $user){
-   //per user
-        $account = user_load($uid);
-
-       //get last sent email
-       $last_digest = 0;
-       if (isset($account->field_last_digest["und"]) && is_array($account->field_last_digest["und"])){
-          foreach($account->field_last_digest["und"] as $vals){
-            if (isset($vals["value"])) $last_digest=$vals["value"];
-          }
+    //get last sent email
+    $last_digest = 0;
+    if (isset($account->field_last_digest["und"]) && is_array($account->field_last_digest["und"])){
+      foreach($account->field_last_digest["und"] as $vals){
+        if (isset($vals["value"])) {
+          $last_digest = $vals["value"];
         }
-        $frequency = 0;
+      }
+    }
+    $frequency = 0;
 
-       //check with preferred digest settings
-       if (isset($account->field_email_frequency["und"]) && is_array($account->field_email_frequency["und"])){
-          foreach($account->field_email_frequency["und"] as $vals){
-            if (isset($vals["value"])) $frequency=$vals["value"];
-          }
+    //check with preferred digest settings
+    if (isset($account->field_email_frequency["und"]) && is_array($account->field_email_frequency["und"])){
+      foreach($account->field_email_frequency["und"] as $vals){
+        if (isset($vals["value"])) {
+          $frequency = $vals["value"];
+        }
+      }
+    }
+
+    if ($frequency > 0) {
+      //if needs to send today
+      $refdate = time() - ($frequency * 24 * 60 * 60);
+
+      if ($refdate > $last_digest || $force) {
+        //get digest per user
+        $digest_basetxt = _pum_portal_custom_digest($uid, $frequency);
+
+        //send email
+        if (strlen($digest_basetxt) > 0) {
+          $params['account'] = $account;
+          $params['frequency']= $frequency;
+          $params['digestbase'] = $digest_basetxt;
+          $m = drupal_mail('pum_portal_custom', 'digest', $account->mail, user_preferred_language($account), $params);
         }
 
-
-       //if needs to send today
-       if ($frequency > 0)
-          $refdate = time() - ($frequency * 24 * 60 * 60);
-
-    //      print "last digest:".$last_digest." ref:".$refdate;
-
-          if ($refdate > $last_digest || $force){
-          //get digest per user
-              $digest_basetxt = _pum_portal_custom_digest($uid, $frequency);
-
-         //     print $digest_basetxt;
-
-          //send email
-              if (strlen($digest_basetxt) > 0){
-                 $params['account'] = $account;
-                 $params['frequency']= $frequency;
-                 $params['digestbase'] = $digest_basetxt;
-                 $m=drupal_mail('pum_portal_custom', 'digest', $account->mail, user_preferred_language($account), $params);
-
-                 print_r($m);
-              }
-
-          //update digest date
-              $accountedit = array();
-              $accountedit["field_last_digest"]["und"][0]["value"] = time();
-              user_save($account, $accountedit);
-          }
-
-     }
-}
-
-  function pum_portal_custom_mail($key, &$message, $params) {
-    $data['user'] = $params['account'];
-    $options['language'] = $message['language'];
-    user_mail_tokens($variables, $data, $options);
-    switch($key) {
-      case 'digest':
-        $langcode = $message['language']->language;
-        $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
-        $message['subject'] = 'PUMnet update';
-        $message['body'][]= "To read the full update, please log in to PUMnet\n\n".$params['digestbase']."\n\n<br /><br />You receive this PUMnet update because you are involved in PUM Netherlands senior experts. In your profile settings on PUMnet, you can choose to adjust the frequency of receiving this PUMnet updates in your inbox.";
-        break;
+        //update digest date
+        $accountedit = array();
+        $accountedit["field_last_digest"]["und"][0]["value"] = time();
+        user_save($account, $accountedit);
+      }
     }
   }
+}
 
-function _pum_portal_custom_digest($uid=1,$days=5){
+function pum_portal_custom_mail($key, &$message, $params) {
+  $data['user'] = $params['account'];
+  $options['language'] = $message['language'];
+  user_mail_tokens($variables, $data, $options);
+  switch($key) {
+    case 'digest':
+      $langcode = $message['language']->language;
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+      $message['subject'] = 'PUMnet update';
+      $message['body'][]= "To read the full update, please log in to PUMnet\n\n".$params['digestbase']."\n\n<br /><br />You receive this PUMnet update because you are involved in PUM Netherlands senior experts. In your profile settings on PUMnet, you can choose to adjust the frequency of receiving this PUMnet updates in your inbox.";
+      break;
+  }
+}
+
+function _pum_portal_custom_digest($uid=1,$days=5) {
   $ret = "";
   if (is_numeric($uid)){
     $user = user_load($uid);
@@ -724,47 +670,48 @@ function _pum_portal_custom_digest($uid=1,$days=5){
     $usertags = array();
 
     if (isset($sectorfield["und"]) && is_array($sectorfield["und"])){
-       foreach($sectorfield["und"] as $vals){
-           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
-       }
+      foreach($sectorfield["und"] as $vals) {
+        if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+      }
     }
     if (isset($countryfield["und"]) && is_array($countryfield["und"])){
-       foreach($countryfield["und"] as $vals){
-           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
-       }
+      foreach($countryfield["und"] as $vals) {
+        if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+      }
     }
     if (isset($genericfield["und"]) && is_array($genericfield["und"])){
-       foreach($genericfield["und"] as $vals){
-           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
-       }
+      foreach($genericfield["und"] as $vals) {
+        if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+      }
     }
     if (isset($privatefield["und"]) && is_array($privatefield["und"])){
-       foreach($privatefield["und"] as $vals){
-           if (isset($vals["tid"])) $usertags[]=$vals["tid"];
-       }
+      foreach($privatefield["und"] as $vals) {
+        if (isset($vals["tid"])) $usertags[]=$vals["tid"];
+      }
     }
 
 
-    if (count($usertags) > 0){
-
+    if (count($usertags) > 0) {
       $entities =  _pum_portal_custom_get_recent_nodes('pum_forum_item', $days, $usertags);
       $flagentities = _pum_portal_custom_get_recent_flag_nodes('pum_forum_item', $uid, $days, 'subscribe_to_this_forum_topic');
 
-      if (isset($flagentities)) $entities = $entities + $flagentities;
+      if (isset($flagentities)) {
+        $entities = $entities + $flagentities;
+      }
 
-      if (count($entities) > 0){
+      if (count($entities) > 0) {
         $img = url('sites/all/themes/pum/images/icon-portal-forum-50x50.png', array('absolute'=>true));
         $ret .= "<h2><img src='".$img."' />FORUM</h2>";
-        foreach ($entities as $nid => $entity){
-           $node = node_load($nid);
-           $node_view = node_view($node,'summary');
-           $summary = $node_view['body'][0]['#markup'];
+        foreach ($entities as $nid => $entity) {
+          $node = node_load($nid);
+          $node_view = node_view($node,'summary');
+          $summary = $node_view['body'][0]['#markup'];
 
-           $usr = user_load($node->uid);
-           $created = date ("d-m-Y", $node->created);
+          $usr = user_load($node->uid);
+          $created = date ("d-m-Y", $node->created);
 
-           $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3><br />";
-           $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
+          $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3><br />";
+          $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
         }
       }
 
@@ -772,212 +719,218 @@ function _pum_portal_custom_digest($uid=1,$days=5){
       $flagentities = _pum_portal_custom_get_recent_flag_nodes('pum_portal_blog', $uid, $days, 'subscribe_to_this_blog_page');
       $flagentities2 =  _pum_portal_custom_get_recent_flag_user_nodes('pum_portal_blog', $uid, $days, 'subscribe_to_this_user_blog');
 
-      if (isset($flagentities)) $entities = $entities + $flagentities;
-      if (isset($flagentities2)) $entities = $entities + $flagentities2;
+      if (isset($flagentities)) {
+        $entities = $entities + $flagentities;
+      }
+      if (isset($flagentities2)) {
+        $entities = $entities + $flagentities2;
+      }
 
-      if (count($entities) > 0){
+      if (count($entities) > 0) {
         $img = url('sites/all/themes/pum/images/icon-portal-blog-50x50.png', array('absolute'=>true));
 
         $ret .= '<h2><img src="'.$img.'" />BLOGS</h2>';
-        foreach ($entities as $nid => $entity){
-           $node = node_load($nid);
-           $node_view = node_view($node,'summary');
-           $summary = $node_view['body'][0]['#markup'];
+        foreach ($entities as $nid => $entity) {
+          $node = node_load($nid);
+          $node_view = node_view($node,'summary');
+          $summary = $node_view['body'][0]['#markup'];
 
-           $usr = user_load($node->uid);
-           $created = date ("d-m-Y", $node->created);
+          $usr = user_load($node->uid);
+          $created = date ("d-m-Y", $node->created);
 
-           $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3>\n";
-           $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
-
+          $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3>\n";
+          $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
         }
       }
 
       $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_document', $days, $usertags);
 
-      if (count($entities) > 0){
+      if (count($entities) > 0) {
         $img = url('sites/all/themes/pum/images/icon-portal-library-50x50.png', array('absolute'=>true));
 
         $ret .= "<h2><img src='".$img."' />PUM's Library - new additions</h2>";
-        foreach ($entities as $nid => $entity){
-           $node = node_load($nid);
-           $usr = user_load($node->uid);
-           $created = date ("d-m-Y", $node->created);
+        foreach ($entities as $nid => $entity) {
+          $node = node_load($nid);
+          $usr = user_load($node->uid);
+          $created = date ("d-m-Y", $node->created);
 
-           $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">View</a><br />';
+          $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">View</a><br />';
         }
       }
 
+      $entities = _pum_portal_custom_get_recent_nodes('pum_portal_news', $days, $usertags);
 
-
-      $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_news', $days, $usertags);
-
-      if (count($entities) > 0){
+      if (count($entities) > 0) {
         $img = url('sites/all/themes/pum/images/icon-portal-news-50x50.png', array('absolute'=>true));
 
         $ret .= "<h2><img src='".$img."' />PUM News</h2>";
-        foreach ($entities as $nid => $entity){
-           $node = node_load($nid);
-           $usr = user_load($node->uid);
-           $created = date ("d-m-Y", $node->created);
+        foreach ($entities as $nid => $entity) {
+          $node = node_load($nid);
+          $usr = user_load($node->uid);
+          $created = date ("d-m-Y", $node->created);
 
-           $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><br />';
+          $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><br />';
         }
       }
 
       $entities = _pum_portal_custom_get_recent_users(array("Customer (contact)"), $days);
-        if (count($entities) > 0){
+
+      if (count($entities) > 0) {
         $img = url('sites/all/themes/pum/images/icon-portal-directory-50x50.png', array('absolute'=>true));
 
         $ret .= "<h2><img src='".$img."' />PUM Community</h2><table>";
-        foreach ($entities as $uid => $entity){
-           $img = "";
-           if (isset($entity->civicrm_contact_image_url) && strlen($entity->civicrm_contact_image_url) > 0) {
-              $img = $entity->civicrm_contact_image_url;
-           }
-           $ret .= '<tr><td>'
-                  .$img
-                  .'</td><td>'
-                  .$entity->civicrm_contact_display_name
-                  .' <a href="'
-                  .url("user/".$uid, array('absolute' => TRUE))
-                  .'">View..</a></td></tr>';
+
+        foreach ($entities as $uid => $entity) {
+          $img = "";
+          if (isset($entity->civicrm_contact_image_url) && strlen($entity->civicrm_contact_image_url) > 0) {
+            $img = $entity->civicrm_contact_image_url;
+          }
+          $ret .= '<tr><td>'
+                .$img
+                .'</td><td>'
+                .$entity->civicrm_contact_display_name
+                .' <a href="'
+                .url("user/".$uid, array('absolute' => TRUE))
+                .'">View..</a></td></tr>';
         }
+
         $ret .= "</table>";
       }
-
-
     }
   }
 
   return $ret;
 }
 
-function _pum_portal_custom_get_recent_flag_nodes($type, $uid, $days, $flagname){
-      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+function _pum_portal_custom_get_recent_flag_nodes($type, $uid, $days, $flagname) {
+  $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
 
-      $q = "SELECT node.nid AS nid FROM
-      {node} node
-      LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
-      INNER JOIN {flagging} flagging_node ON node.nid = flagging_node.entity_id
-      INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
-      WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
-      ORDER BY node.created DESC";
+  $q = "SELECT node.nid AS nid FROM
+  {node} node
+  LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
+  INNER JOIN {flagging} flagging_node ON node.nid = flagging_node.entity_id
+  INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
+  WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
+  ORDER BY node.created DESC";
 
-      $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
+  $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
 
-      $entities = array();
+  $entities = array();
 
-      foreach ($result as $record) {
-           $entities[$record->nid] = $record->nid;
-      }
+  foreach ($result as $record) {
+    $entities[$record->nid] = $record->nid;
+  }
 
-
-      return $entities;
-
-
+  return $entities;
 }
-function _pum_portal_custom_get_recent_users($roles, $days){
-      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+function _pum_portal_custom_get_recent_users($roles, $days) {
+  $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
 
-      $q = "SELECT users.uid AS uid, civicrm_contact.display_name as civicrm_contact_display_name, civicrm_contact.image_URL AS civicrm_contact_image_url, field_data_field_pum_user_sector.field_pum_user_sector_tid AS field_pum_user_sector_tid
-      FROM {users} users
-      LEFT JOIN {users_roles} users_roles ON users.uid = users_roles.uid
-      LEFT JOIN {role} role on role.rid = users_roles.rid
-      LEFT JOIN {civicrm_uf_match} civicrm_uf_match ON users.uid = civicrm_uf_match.uf_id
-      LEFT JOIN {civicrm_contact} civicrm_contact ON civicrm_uf_match.contact_id = civicrm_contact.id
-      LEFT JOIN {field_data_field_pum_user_sector} field_data_field_pum_user_sector ON users.uid = field_data_field_pum_user_sector.entity_id AND field_data_field_pum_user_sector.entity_type = 'user'
-      WHERE (( (users.status <> '0') AND (role.name NOT IN (:roles)) AND (users.created > :created) ))";
+  $q = "SELECT users.uid AS uid, civicrm_contact.display_name as civicrm_contact_display_name, civicrm_contact.image_URL AS civicrm_contact_image_url, field_data_field_pum_user_sector.field_pum_user_sector_tid AS field_pum_user_sector_tid
+  FROM {users} users
+  LEFT JOIN {users_roles} users_roles ON users.uid = users_roles.uid
+  LEFT JOIN {role} role on role.rid = users_roles.rid
+  LEFT JOIN {civicrm_uf_match} civicrm_uf_match ON users.uid = civicrm_uf_match.uf_id
+  LEFT JOIN {civicrm_contact} civicrm_contact ON civicrm_uf_match.contact_id = civicrm_contact.id
+  LEFT JOIN {field_data_field_pum_user_sector} field_data_field_pum_user_sector ON users.uid = field_data_field_pum_user_sector.entity_id AND field_data_field_pum_user_sector.entity_type = 'user'
+  WHERE (( (users.status <> '0') AND (role.name NOT IN (:roles)) AND (users.created > :created) ))";
 
-      $result = db_query($q, array(':roles' => $roles, ':created' => $days_ago));
+  $result = db_query($q, array(':roles' => $roles, ':created' => $days_ago));
 
-      $entities = array();
+  $entities = array();
 
-      foreach ($result as $record) {
-           $entities[$record->uid] = $record;
-      }
-      return $entities;
+  foreach ($result as $record) {
+    $entities[$record->uid] = $record;
+  }
 
-
+  return $entities;
 }
 
 
-function _pum_portal_custom_get_recent_flag_user_nodes($type, $uid, $days, $flagname){
-      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+function _pum_portal_custom_get_recent_flag_user_nodes($type, $uid, $days, $flagname) {
+  $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
 
-      $q = "SELECT node.nid AS nid FROM
-      {node} node
-      LEFT JOIN {users} users_node ON node.uid = users_node.uid
-      LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
-      INNER JOIN {flagging} flagging_node ON users_node.uid = flagging_node.entity_id
-      INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
-      WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
-      ORDER BY node.created DESC";
+  $q = "SELECT node.nid AS nid FROM
+  {node} node
+  LEFT JOIN {users} users_node ON node.uid = users_node.uid
+  LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
+  INNER JOIN {flagging} flagging_node ON users_node.uid = flagging_node.entity_id
+  INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
+  WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
+  ORDER BY node.created DESC";
 
-      $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
+  $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
 
-      $entities = array();
+  $entities = array();
 
-      foreach ($result as $record) {
-           $entities[$record->nid] = $record->nid;
-      }
+  foreach ($result as $record) {
+    $entities[$record->nid] = $record->nid;
+  }
 
-
-      return $entities;
-
-
+  return $entities;
 }
 
-function _pum_portal_custom_get_recent_nodes($type,$days, $usertags){
-      $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+function _pum_portal_custom_get_recent_nodes($type,$days, $usertags) {
+  $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
 
-      $query = new EntityFieldQuery();
-      $entities1 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', $type)
-      ->propertyCondition('status', '1')
-      ->propertyCondition('created', $days_ago, '>')
-      ->fieldCondition('field_pum_country', 'tid', $usertags, 'IN')
-      ->addMetaData('account', user_load(1))
-      ->execute();
-      $query = new EntityFieldQuery();
-      $entities2 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', $type)
-      ->propertyCondition('status', '1')
-      ->propertyCondition('created', $days_ago, '>')
-      ->fieldCondition('field_pum_sector', 'tid', $usertags, 'IN')
-      ->addMetaData('account', user_load(1))
-      ->execute();
-      $query = new EntityFieldQuery();
-      $entities3 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', $type)
-      ->propertyCondition('status', '1')
-      ->propertyCondition('created', $days_ago, '>')
-      ->fieldCondition('field_pum_generic', 'tid', $usertags, 'IN')
-      ->addMetaData('account', user_load(1))
-      ->execute();
-      $query = new EntityFieldQuery();
-      $entities4 = $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('type', $type)
-      ->propertyCondition('status', '1')
-      ->propertyCondition('created', $days_ago, '>')
-      ->fieldCondition('field_pum_private', 'tid', $usertags, 'IN')
-      ->addMetaData('account', user_load(1))
-      ->execute();
+  $query = new EntityFieldQuery();
+  $entities1 = $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', $type)
+    ->propertyCondition('status', '1')
+    ->propertyCondition('created', $days_ago, '>')
+    ->fieldCondition('field_pum_country', 'tid', $usertags, 'IN')
+    ->addMetaData('account', user_load(1))
+    ->execute();
 
-      $entities = array();
-      if (isset($entities1["node"])) $entities = $entities+$entities1["node"];
-      if (isset($entities2["node"])) $entities = $entities+$entities2["node"];
-      if (isset($entities3["node"])) $entities = $entities+$entities3["node"];
-      if (isset($entities4["node"])) $entities = $entities+$entities4["node"];
+  $query = new EntityFieldQuery();
+  $entities2 = $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', $type)
+    ->propertyCondition('status', '1')
+    ->propertyCondition('created', $days_ago, '>')
+    ->fieldCondition('field_pum_sector', 'tid', $usertags, 'IN')
+    ->addMetaData('account', user_load(1))
+    ->execute();
 
+  $query = new EntityFieldQuery();
+  $entities3 = $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', $type)
+    ->propertyCondition('status', '1')
+    ->propertyCondition('created', $days_ago, '>')
+    ->fieldCondition('field_pum_generic', 'tid', $usertags, 'IN')
+    ->addMetaData('account', user_load(1))
+    ->execute();
 
-   return $entities;
+  $query = new EntityFieldQuery();
+  $entities4 = $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', $type)
+    ->propertyCondition('status', '1')
+    ->propertyCondition('created', $days_ago, '>')
+    ->fieldCondition('field_pum_private', 'tid', $usertags, 'IN')
+    ->addMetaData('account', user_load(1))
+    ->execute();
 
+  $entities = array();
+  if (isset($entities1["node"])) {
+    $entities = $entities+$entities1["node"];
+  }
+  if (isset($entities2["node"])) {
+    $entities = $entities+$entities2["node"];
+  }
+  if (isset($entities3["node"])) {
+    $entities = $entities+$entities3["node"];
+  }
+  if (isset($entities4["node"])) {
+    $entities = $entities+$entities4["node"];
+  }
+
+  return $entities;
 }
 
 function pum_portal_custom_views_query_alter(&$view, &$query) {
   global $user;
+
   $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents', 'latest_portal_news');
+
   if (!empty($user->uid) && in_array($view->name, $viewNamesToRestrict)) {
     /**
      * Add a where statement to include only forum topics which are not linked
@@ -991,10 +944,11 @@ function pum_portal_custom_views_query_alter(&$view, &$query) {
         $user_private_communities[] = $userterm['tid'];
       }
     }
+
     $vocabulary = taxonomy_vocabulary_machine_name_load('private_group');
     $private_communities = entity_load('taxonomy_term', FALSE, array('vid' => $vocabulary->vid));
-
     $access_communities = array();
+
     foreach($private_communities as $term) {
       if (in_array($term->tid, $user_private_communities)) {
         if(taxonomy_term_load($term->tid) != FALSE) {
@@ -1038,8 +992,10 @@ function pum_portal_custom_node_access($node, $op, $account) {
   if ($op != 'view') {
     return NODE_ACCESS_IGNORE;
   }
+
   $nodeType = $node->type;
   $restrictedNodeTypes = array('pum_forum_item', 'pum_portal_document', 'pum_portal_blog', 'pum_portal_news');
+
   if (in_array($nodeType, $restrictedNodeTypes) && isset($node->field_pum_private['und']) && is_array($node->field_pum_private['und']) && count($node->field_pum_private['und'])) {
     $user = user_load($account->uid);
     // Check whether the user has access to the private community.
