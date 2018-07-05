@@ -98,13 +98,13 @@ function pum_portal_custom_menu() {
     'title' => 'Portal mail',
     'description' => 'Pum mail test',
     'page callback' => '_pum_portal_custom_digest',
-    'page arguments' => array('1'),
+    'page arguments' => array(1),
     'access arguments' => array('administer site configuration'),
   );
   return $items;
 }
 
-function _pum_sync_settings_form ($form, &$form_state) {
+function _pum_sync_settings_form($form, &$form_state) {
  $form['high_school']['tests_taken'] = array(
     '#type' => 'checkboxes',
     '#options' => array("countries" => "countries"),
@@ -690,7 +690,6 @@ function _pum_portal_custom_digest($uid=1,$days=5) {
       }
     }
 
-
     if (count($usertags) > 0) {
       $entities =  _pum_portal_custom_get_recent_nodes('pum_forum_item', $days, $usertags);
       $flagentities = _pum_portal_custom_get_recent_flag_nodes('pum_forum_item', $uid, $days, 'subscribe_to_this_forum_topic');
@@ -700,19 +699,26 @@ function _pum_portal_custom_digest($uid=1,$days=5) {
       }
 
       if (count($entities) > 0) {
-        $img = url('sites/all/themes/pum/images/icon-portal-forum-50x50.png', array('absolute'=>true));
-        $ret .= "<h2><img src='".$img."' />FORUM</h2>";
+        $img = url('/sites/all/themes/pum/images/icon-portal-forum-50x50.png', array('absolute' => TRUE));
+        $ret .= '<h2><img src="'.$img.'" /> Forum</h2>';
+        $ret .= '<div style="width: 50%;">';
+        $ret .= '<table>';
         foreach ($entities as $nid => $entity) {
           $node = node_load($nid);
           $node_view = node_view($node,'summary');
           $summary = $node_view['body'][0]['#markup'];
 
           $usr = user_load($node->uid);
-          $created = date ("d-m-Y", $node->created);
+          $changed = date("d-m-Y", $node->changed);
 
-          $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3><br />";
-          $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
+          $ret .= '<tr>';
+          $ret .= '<td><a href="'.url("user/login?destination=node/".$node->nid, array('absolute' => TRUE)).'">'.$node->title.'</a></td>';
+          $ret .= '<td>'.$usr->name.'</td>';
+          $ret .= '<td>'.$changed.'</td>';
+          $ret .= '</tr>';
         }
+        $ret .= '</table>';
+        $ret .= '</div>';
       }
 
       $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_blog', $days, $usertags);
@@ -727,74 +733,103 @@ function _pum_portal_custom_digest($uid=1,$days=5) {
       }
 
       if (count($entities) > 0) {
-        $img = url('sites/all/themes/pum/images/icon-portal-blog-50x50.png', array('absolute'=>true));
+        $img = url('/sites/all/themes/pum/images/icon-portal-blog-50x50.png', array('absolute' => TRUE));
 
-        $ret .= '<h2><img src="'.$img.'" />BLOGS</h2>';
+        $ret .= '<h2><img src="'.$img.'" /> Blogs</h2>';
+        $ret .= '<div style="width: 50%;">';
+        $ret .= '<table>';
         foreach ($entities as $nid => $entity) {
           $node = node_load($nid);
           $node_view = node_view($node,'summary');
           $summary = $node_view['body'][0]['#markup'];
 
           $usr = user_load($node->uid);
-          $created = date ("d-m-Y", $node->created);
+          $changed = date("d-m-Y", $node->changed);
 
-          $ret .= "<h3>".$node->title." - ".$usr->name." - ".$created."</h3>\n";
-          $ret .= $summary.'<br /><a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><p></p>';
+          $ret .= '<tr>';
+          $ret .= '<td><a href="'.url("user/login?destination=node/".$node->nid, array('absolute' => TRUE)).'">'.$node->title.'</a></td>';
+          $ret .= '<td>'.$usr->name.'</td>';
+          $ret .= '<td>'.$changed.'</td>';
+          $ret .= '</tr>';
         }
+        $ret .= '</table>';
+        $ret .= '</div>';
       }
 
       $entities =  _pum_portal_custom_get_recent_nodes('pum_portal_document', $days, $usertags);
 
       if (count($entities) > 0) {
-        $img = url('sites/all/themes/pum/images/icon-portal-library-50x50.png', array('absolute'=>true));
+        $img = url('/sites/all/themes/pum/images/icon-portal-library-50x50.png', array('absolute' => TRUE));
 
-        $ret .= "<h2><img src='".$img."' />PUM's Library - new additions</h2>";
+        $ret .= '<h2><img src="'.$img.'" /> Library</h2>';
+        $ret .= '<div style="width: 50%;">';
+        $ret .= '<table>';
         foreach ($entities as $nid => $entity) {
           $node = node_load($nid);
-          $usr = user_load($node->uid);
-          $created = date ("d-m-Y", $node->created);
+          $node_view = node_view($node,'summary');
+          $summary = $node_view['body'][0]['#markup'];
 
-          $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">View</a><br />';
+          $usr = user_load($node->uid);
+          $changed = date("d-m-Y", $node->changed);
+
+          $ret .= '<tr>';
+          $ret .= '<td style="width: 50%;"><a href="'.url("user/login?destination=node/".$node->nid, array('absolute' => TRUE)).'">'.$node->title.'</a></td>';
+          $ret .= '<td>'.$usr->name.'</td>';
+          $ret .= '<td>'.$changed.'</td>';
+          $ret .= '</tr>';
         }
+        $ret .= '</table>';
+        $ret .= '</div>';
       }
 
       $entities = _pum_portal_custom_get_recent_nodes('pum_portal_news', $days, $usertags);
 
       if (count($entities) > 0) {
-        $img = url('sites/all/themes/pum/images/icon-portal-news-50x50.png', array('absolute'=>true));
+        $img = url('/sites/all/themes/pum/images/icon-portal-news-50x50.png', array('absolute' => TRUE));
 
-        $ret .= "<h2><img src='".$img."' />PUM News</h2>";
+        $ret .= '<h2><img src="'.$img.'" /> PUM News</h2>';
+        $ret .= '<div style="width: 50%;">';
+        $ret .= '<table>';
         foreach ($entities as $nid => $entity) {
           $node = node_load($nid);
-          $usr = user_load($node->uid);
-          $created = date ("d-m-Y", $node->created);
+          $node_view = node_view($node,'summary');
+          $summary = $node_view['body'][0]['#markup'];
 
-          $ret .= $node->title.' <a href="'.url("node/".$node->nid, array('absolute' => TRUE)).'">Read more..</a><br />';
+          $usr = user_load($node->uid);
+          $changed = date("d-m-Y", $node->changed);
+
+          $ret .= '<tr>';
+          $ret .= '<td style="width: 50%;"><a href="'.url("user/login?destination=node/".$node->nid, array('absolute' => TRUE)).'">'.$node->title.'</a></td>';
+          $ret .= '<td>'.$usr->name.'</td>';
+          $ret .= '<td>'.$changed.'</td>';
+          $ret .= '</tr>';
         }
+        $ret .= '</table>';
+        $ret .= '</div>';
       }
 
       $entities = _pum_portal_custom_get_recent_users(array("Customer (contact)"), $days);
 
       if (count($entities) > 0) {
-        $img = url('sites/all/themes/pum/images/icon-portal-directory-50x50.png', array('absolute'=>true));
+        $img = url('/sites/all/themes/pum/images/icon-portal-directory-50x50.png', array('absolute' => TRUE));
 
-        $ret .= "<h2><img src='".$img."' />PUM Community</h2><table>";
+        $ret .= '<h2><img src="'.$img.'" /> PUM Community</h2>';
+        $ret .= '<div style="width: 50%;">';
+        $ret .= '<table>';
 
         foreach ($entities as $uid => $entity) {
-          $img = "";
-          if (isset($entity->civicrm_contact_image_url) && strlen($entity->civicrm_contact_image_url) > 0) {
-            $img = $entity->civicrm_contact_image_url;
+          $contact_img = "";
+          if (!empty($entity->civicrm_contact_image_url)) {
+            $contact_img = $entity->civicrm_contact_image_url;
           }
-          $ret .= '<tr><td>'
-                .$img
-                .'</td><td>'
-                .$entity->civicrm_contact_display_name
-                .' <a href="'
-                .url("user/".$uid, array('absolute' => TRUE))
-                .'">View..</a></td></tr>';
+          $ret .= '<tr>';
+          $ret .= '<td>'.$contact_img.'</td>';
+          $ret .= '<td>'.$entity->civicrm_contact_display_name.'</td>';
+          $ret .= '<td><a href="'.url("user/login?destination=user/".$uid, array('absolute' => TRUE)).'">View</a></td>';
+          $ret .= '</tr>';
         }
-
-        $ret .= "</table>";
+        $ret .= '</table>';
+        $ret .= '</div>';
       }
     }
   }
@@ -871,56 +906,52 @@ function _pum_portal_custom_get_recent_flag_user_nodes($type, $uid, $days, $flag
 }
 
 function _pum_portal_custom_get_recent_nodes($type,$days, $usertags) {
-  $days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
-
+  $timestamp_days_ago = mktime(0, 0, 0, date("m") , date("d") - $days, date("Y"));
+  $days_ago = date('Y-m-d', $timestamp_days_ago);
   $query = new EntityFieldQuery();
   $entities1 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>')
+    ->propertyCondition('created', $days_ago, '>=')
     ->fieldCondition('field_pum_country', 'tid', $usertags, 'IN')
-    ->addMetaData('account', user_load(1))
     ->execute();
 
   $query = new EntityFieldQuery();
   $entities2 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>')
+    ->propertyCondition('created', $days_ago, '>=')
     ->fieldCondition('field_pum_sector', 'tid', $usertags, 'IN')
-    ->addMetaData('account', user_load(1))
     ->execute();
 
   $query = new EntityFieldQuery();
   $entities3 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>')
+    ->propertyCondition('created', $days_ago, '>=')
     ->fieldCondition('field_pum_generic', 'tid', $usertags, 'IN')
-    ->addMetaData('account', user_load(1))
     ->execute();
 
   $query = new EntityFieldQuery();
   $entities4 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>')
+    ->propertyCondition('created', $days_ago, '>=')
     ->fieldCondition('field_pum_private', 'tid', $usertags, 'IN')
-    ->addMetaData('account', user_load(1))
     ->execute();
 
   $entities = array();
   if (isset($entities1["node"])) {
-    $entities = $entities+$entities1["node"];
+    $entities[] = $entities1["node"];
   }
   if (isset($entities2["node"])) {
-    $entities = $entities+$entities2["node"];
+    $entities[] = $entities2["node"];
   }
   if (isset($entities3["node"])) {
-    $entities = $entities+$entities3["node"];
+    $entities[] = $entities3["node"];
   }
   if (isset($entities4["node"])) {
-    $entities = $entities+$entities4["node"];
+    $entities[] = $entities4["node"];
   }
 
   return $entities;
