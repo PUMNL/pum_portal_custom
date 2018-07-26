@@ -253,7 +253,12 @@ function pum_portal_custom_block_info() {
   $blocks = array();
   $blocks['pum_term_subscription'] = array(
     'info' => t('Pum Term Subscription'),
-    'cache' => DRUPAL_NO_CACHE,
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  $blocks['pum_knowledge_portal'] = array(
+    'info' => t('PUMnet Knowledge Portal'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
   );
   return $blocks;
 }
@@ -267,6 +272,9 @@ function pum_portal_custom_block_view($delta = '') {
     case 'pum_term_subscription':
       $block['subject'] = t('Subscribe');
       $block['content'] = _pum_portal_subscription();
+      break;
+    case 'pum_knowledge_portal':
+      $block['content'] = '<img src="/sites/all/themes/pum/images/knowledge_portal.png" />';
       break;
   }
   return $block;
