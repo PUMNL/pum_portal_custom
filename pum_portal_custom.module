@@ -260,6 +260,12 @@ function pum_portal_custom_block_info() {
     'info' => t('PUMnet Knowledge Portal'),
     'cache' => DRUPAL_CACHE_GLOBAL,
   );
+
+  $blocks['socialmedia_icons'] = array(
+    'info' => t('PUM Social Media Icons'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
   return $blocks;
 }
 
@@ -275,6 +281,9 @@ function pum_portal_custom_block_view($delta = '') {
       break;
     case 'pum_knowledge_portal':
       $block['content'] = '<img src="/sites/all/themes/pum/images/knowledge_portal.png" />';
+      break;
+    case 'socialmedia_icons':
+      $block['content'] = '<div class="socialmedia"><a class="fb" href="https://www.facebook.com/PUM.nl">&nbsp;</a><a class="tw" href="https://twitter.com/pum_nl">&nbsp;</a><a class="li" href="https://www.linkedin.com/company/pum-netherlands-senior-experts">&nbsp;</a><a class="yt" href="https://www.youtube.com/user/PUMSeniorExperts">&nbsp;</a><a class="in" href="https://www.instagram.com/pum_nl/">&nbsp;</a></div>';
       break;
   }
   return $block;
