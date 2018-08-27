@@ -657,24 +657,57 @@ function _pum_portal_custom_digest_all($force = false) {
         }
 
         //update digest date
-        //$accountedit = array();
-        //$accountedit['field_last_digest'][LANGUAGE_NONE][0]['value'] = $now;
-        //user_save($account, $accountedit);
+        $accountedit = array();
+        $accountedit['field_last_digest'][LANGUAGE_NONE][0]['value'] = $now;
+        user_save($account, $accountedit);
 
-        //user_save only updates revision field, but it $account->field_last_digest take value from field_data_field_last_digest
-        db_update('field_data_field_last_digest')
-          ->fields(array('field_last_digest_value' => $now,))
-          ->condition('entity_type', 'user', '=')
-          ->condition('entity_id', $uid, '=')
+        $account = user_load($uid);
+
+
+        if(empty($account->field_last_digest)) {
+          $insert = db_insert('field_data_field_last_digest')
+          ->fields(array(
+            'entity_type' => 'user',
+            'bundle' => 'user',
+            'deleted' => 0,
+            'entity_id' => $uid,
+            'revision_id' => $uid,
+            'language' => 'und',
+            'delta' => 0,
+            'field_last_digest_value' => $now,
+          ))
           ->execute();
-        db_update('field_revision_field_last_digest')
-          ->fields(array('field_last_digest_value' => $now,))
-          ->condition('entity_type', 'user', '=')
-          ->condition('entity_id', $uid, '=')
+
+          $insert2 = db_insert('field_revision_field_last_digest')
+          ->fields(array(
+            'entity_type' => 'user',
+            'bundle' => 'user',
+            'deleted' => 0,
+            'entity_id' => $uid,
+            'revision_id' => $uid,
+            'language' => 'und',
+            'delta' => 0,
+            'field_last_digest_value' => $now,
+          ))
           ->execute();
+        } else {
+          //user_save only updates revision field, but it $account->field_last_digest take value from field_data_field_last_digest
+          $update = db_update('field_data_field_last_digest')
+            ->fields(array('field_last_digest_value' => $now,))
+            ->condition('entity_type', 'user', '=')
+            ->condition('entity_id', $uid, '=')
+            ->execute();
+
+          $update2 = db_update('field_revision_field_last_digest')
+            ->fields(array('field_last_digest_value' => $now,))
+            ->condition('entity_type', 'user', '=')
+            ->condition('entity_id', $uid, '=')
+            ->execute();
+        }
       }
     }
   }
+  //Need to clear field cache otherwise system returns the cached value
   field_cache_clear();
 }
 
