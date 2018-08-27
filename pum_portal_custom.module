@@ -600,6 +600,7 @@ function pum_portal_custom_user_presave(&$edit, $account, $category) {
 }
 
 function _pum_portal_custom_digest_all($force = false) {
+  field_cache_clear();
   mailsystem_set(array(
     'pum_portal_custom_digest' => 'MimeMailSystem', // Just messages with $key sent by $module.
   ));
@@ -609,38 +610,41 @@ function _pum_portal_custom_digest_all($force = false) {
   $users = $query->entityCondition('entity_type', 'user')
   ->propertyCondition('status', '1')
   ->fieldCondition('field_email_frequency', 'value', 1,  '>=')
-  ->addMetaData('account', user_load(1))
+  //->addMetaData('account', user_load(1))
   ->execute();
 
-  foreach ($users["user"] as $uid => $user) {
+  foreach ($users['user'] as $uid => $user) {
+
     //per user
     $account = user_load($uid);
 
     //get last sent email
     $last_digest = 0;
-    if (isset($account->field_last_digest["und"]) && is_array($account->field_last_digest["und"])){
-      foreach($account->field_last_digest["und"] as $vals){
-        if (isset($vals["value"])) {
-          $last_digest = $vals["value"];
+
+    if (isset($account->field_last_digest['und']) && is_array($account->field_last_digest['und'])){
+      foreach($account->field_last_digest['und'] as $vals){
+        if (isset($vals['value'])) {
+          $last_digest = $vals['value'];
         }
       }
     }
+
     $frequency = 0;
 
     //check with preferred digest settings
-    if (isset($account->field_email_frequency["und"]) && is_array($account->field_email_frequency["und"])){
-      foreach($account->field_email_frequency["und"] as $vals){
-        if (isset($vals["value"])) {
-          $frequency = $vals["value"];
+    if (isset($account->field_email_frequency['und']) && is_array($account->field_email_frequency['und'])){
+      foreach($account->field_email_frequency['und'] as $vals){
+        if (isset($vals['value'])) {
+          $frequency = $vals['value'];
         }
       }
     }
 
     if ($frequency > 0) {
-      //if needs to send today
-      $refdate = time() - ($frequency * 24 * 60 * 60);
+      $now = time();
+      $next_timestamp = $last_digest + ($frequency * 24 * 60 * 60);
 
-      if ($refdate > $last_digest || $force) {
+      if ($now > $next_timestamp || $force) {
         //get digest per user
         $digest_basetxt = _pum_portal_custom_digest($uid, $frequency);
 
@@ -653,12 +657,25 @@ function _pum_portal_custom_digest_all($force = false) {
         }
 
         //update digest date
-        $accountedit = array();
-        $accountedit["field_last_digest"]["und"][0]["value"] = time();
-        user_save($account, $accountedit);
+        //$accountedit = array();
+        //$accountedit['field_last_digest'][LANGUAGE_NONE][0]['value'] = $now;
+        //user_save($account, $accountedit);
+
+        //user_save only updates revision field, but it $account->field_last_digest take value from field_data_field_last_digest
+        db_update('field_data_field_last_digest')
+          ->fields(array('field_last_digest_value' => $now,))
+          ->condition('entity_type', 'user', '=')
+          ->condition('entity_id', $uid, '=')
+          ->execute();
+        db_update('field_revision_field_last_digest')
+          ->fields(array('field_last_digest_value' => $now,))
+          ->condition('entity_type', 'user', '=')
+          ->condition('entity_id', $uid, '=')
+          ->execute();
       }
     }
   }
+  field_cache_clear();
 }
 
 function pum_portal_custom_mail($key, &$message, $params) {
@@ -862,7 +879,7 @@ function _pum_portal_custom_get_recent_flag_nodes($type, $uid, $days, $flagname)
   LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
   INNER JOIN {flagging} flagging_node ON node.nid = flagging_node.entity_id
   INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
-  WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
+  WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) >= :created)
   ORDER BY node.created DESC";
 
   $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
@@ -885,7 +902,7 @@ function _pum_portal_custom_get_recent_users($roles, $days) {
   LEFT JOIN {civicrm_uf_match} civicrm_uf_match ON users.uid = civicrm_uf_match.uf_id
   LEFT JOIN {civicrm_contact} civicrm_contact ON civicrm_uf_match.contact_id = civicrm_contact.id
   LEFT JOIN {field_data_field_pum_user_sector} field_data_field_pum_user_sector ON users.uid = field_data_field_pum_user_sector.entity_id AND field_data_field_pum_user_sector.entity_type = 'user'
-  WHERE (( (users.status <> '0') AND (role.name NOT IN (:roles)) AND (users.created > :created) ))";
+  WHERE (( (users.status <> '0') AND (role.name NOT IN (:roles)) AND (users.created >= :created) ))";
 
   $result = db_query($q, array(':roles' => $roles, ':created' => $days_ago));
 
@@ -908,7 +925,7 @@ function _pum_portal_custom_get_recent_flag_user_nodes($type, $uid, $days, $flag
   LEFT JOIN {node_comment_statistics} node_comment_statistics ON node.nid = node_comment_statistics.nid
   INNER JOIN {flagging} flagging_node ON users_node.uid = flagging_node.entity_id
   INNER JOIN {flag} flag ON flagging_node.fid = flag.fid and flag.name = :flagname
-  WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) > :created)
+  WHERE flagging_node.uid = :uid AND node.status = '1' AND node.type IN  (:type) AND (GREATEST(node.changed, node_comment_statistics.last_comment_timestamp) >= :created)
   ORDER BY node.created DESC";
 
   $result = db_query($q, array(':uid' => $uid, ':type' => $type, ':flagname' => $flagname, ':created' => $days_ago));
@@ -929,7 +946,7 @@ function _pum_portal_custom_get_recent_nodes($type,$days, $usertags) {
   $entities1 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>=')
+    ->propertyCondition('changed', $days_ago, '>=')
     ->fieldCondition('field_pum_country', 'tid', $usertags, 'IN')
     ->execute();
 
@@ -937,7 +954,7 @@ function _pum_portal_custom_get_recent_nodes($type,$days, $usertags) {
   $entities2 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>=')
+    ->propertyCondition('changed', $days_ago, '>=')
     ->fieldCondition('field_pum_sector', 'tid', $usertags, 'IN')
     ->execute();
 
@@ -945,7 +962,7 @@ function _pum_portal_custom_get_recent_nodes($type,$days, $usertags) {
   $entities3 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>=')
+    ->propertyCondition('changed', $days_ago, '>=')
     ->fieldCondition('field_pum_generic', 'tid', $usertags, 'IN')
     ->execute();
 
@@ -953,7 +970,7 @@ function _pum_portal_custom_get_recent_nodes($type,$days, $usertags) {
   $entities4 = $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', $type)
     ->propertyCondition('status', '1')
-    ->propertyCondition('created', $days_ago, '>=')
+    ->propertyCondition('changed', $days_ago, '>=')
     ->fieldCondition('field_pum_private', 'tid', $usertags, 'IN')
     ->execute();
 
