@@ -52,6 +52,7 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
       }
     }
   }
+
   if ($form_id == "user_profile_form" || $form_id == "user_edit") {
     foreach ($form as $fieldname => $field) {
 
@@ -1109,3 +1110,113 @@ function pum_portal_custom_node_access($node, $op, $account) {
   return NODE_ACCESS_IGNORE;
 }
 
+function _pum_portal_custom_get_user_subscribed_topics() {
+  $flag_nodes = flag_get_user_flags('node');
+  $flag_users = flag_get_user_flags('user');
+
+  $topics = array();
+
+  if(is_array($flag_nodes)) {
+    foreach($flag_nodes as $key => $entity_id) {
+      if($key == 'subscribe_to_this_blog_page') {
+        foreach($entity_id as $key2 => $value) {
+          $topics['blog'][$value->entity_id] = node_load($value->entity_id);
+        }
+      }
+      if($key == 'subscribe_to_this_forum_topic') {
+        foreach($entity_id as $key3 => $value) {
+          $topics['forum'][$value->entity_id] = node_load($value->entity_id);
+        }
+      }
+    }
+  }
+  if(is_array($flag_users)) {
+    foreach($flag_users as $key => $entity_id) {
+      foreach($entity_id as $key2 => $value) {
+        $topics['user_blogs'][$value->entity_id] = user_load($value->entity_id);
+      }
+    }
+  }
+
+  return $topics;
+}
+
+
+function pum_portal_custom_user_view($account, $view_mode) {
+  $topics = '';
+  $blogs = '';
+  $fora = '';
+  $user_blogs = '';
+  $markup = '';
+  $email_preferences = '';
+  $last_email_notification = '';
+
+  //Last digest count should not be displayed on user profile page it is converted below to readable date format
+  $account->content['field_last_digest']['#access'] = FALSE;
+  $account->content['field_email_preferences']['#access'] = FALSE;
+  $last_email_notification_ts = field_get_items('user', $account, 'field_last_digest')[0]['value'];
+
+  if(!empty($last_email_notification_ts)) {
+    $last_email_notification = '<dd>'.date('d-m-Y H:i:s',$last_email_notification_ts).'</dd>';
+  }
+
+  //Get subscribed topics & e-mail preferences of user
+  $topics = _pum_portal_custom_get_user_subscribed_topics();
+  $account = user_load($account->uid);
+  $email_pref_getfield = field_get_items('user', $account, 'field_email_preferences');
+  $email_pref_getvalues = array();
+  foreach ($email_pref_getfield as $key => $value) {
+    $email_pref_getvalues[] = field_view_value('user', $account, 'field_email_preferences', $email_pref_getfield[$key]);
+  }
+
+  //Loop through all e-mail preferences and subscribed topics and put a little markup to it
+  //This will be shown on the user profile page
+  foreach($email_pref_getvalues as $key => $value) {
+    $email_preferences.= '<dd>'.$value['#markup'].'</dd>';
+  }
+
+  if (is_array($topics)) {
+    foreach($topics as $key => $topic) {
+      if ($key == 'forum') {
+        foreach($topic as $key2 => $title){
+          $fora.= '<dd><a href="/node/'.$key2.'">'.$title->title.'</a></dd>';
+        }
+      }
+
+      if ($key == 'blog') {
+        foreach($topic as $key2 => $title){
+          $blogs.= '<dd><a href="/node/'.$key2.'">'.$title->title.'</a></dd>';
+        }
+      }
+
+      if ($key == 'user_blogs') {
+        foreach($topic as $key2 => $title){
+          $user_blogs.= '<dd><a href="/node/'.$key2.'">'.$title->mail.'</a></dd>';
+        }
+      }
+    }
+  }
+
+  $markup.= '<br />';
+  $markup.= '<h3>E-mail Preferences</h3>';
+  $markup.= '<h5>Last e-mail notification</h5>';
+  $markup.= $last_email_notification;
+  $markup.= '<br />';
+  $markup.= '<h5>Preferred e-mails</h5>';
+  $markup.= $email_preferences;
+  $markup.= '<br />';
+  $markup.= '<h5>Subscribed Fora</h5>';
+  $markup.= $fora;
+  $markup.= '<br />';
+  $markup.= '<h5>Subscribed Blogs</h5>';
+  $markup.= $blogs;
+  $markup.= '<br />';
+  $markup.= '<h5>Subscribed User Blogs</h5>';
+  $markup.= $user_blogs;
+  $markup.= '<br />';
+
+  $account->content['subscribed_topics'] = array(
+    '#markup' => t($markup),
+    '#weight' => 10,
+  );
+}
