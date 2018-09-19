@@ -262,8 +262,13 @@ function pum_portal_custom_block_info() {
     'cache' => DRUPAL_CACHE_GLOBAL,
   );
 
-  $blocks['socialmedia_icons'] = array(
-    'info' => t('PUM Social Media Icons'),
+  $blocks['socialmedia_icons_top'] = array(
+    'info' => t('PUM Social Media Icons Top'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  $blocks['socialmedia_icons_bottom'] = array(
+    'info' => t('PUM Social Media Icons Bottom'),
     'cache' => DRUPAL_CACHE_GLOBAL,
   );
 
@@ -275,6 +280,7 @@ function pum_portal_custom_block_info() {
  */
 function pum_portal_custom_block_view($delta = '') {
   $block = array();
+  $social_media_links = '<a class="fb" href="https://www.facebook.com/PUM.nl" target="_blank" title="Join us on Facebook">&nbsp;</a><a class="tw" href="https://twitter.com/pum_nl" target="_blank" title="Follow us on Twitter">&nbsp;</a><a class="li" href="https://www.linkedin.com/company/pum-netherlands-senior-experts" target="_blank" title="Join us on LinkedIn">&nbsp;</a><a class="yt" href="https://www.youtube.com/user/PUMSeniorExperts" target="_blank" title="Watch us on YouTube">&nbsp;</a><a class="in" href="https://www.instagram.com/pum_nl/" target="_blank" title="Follow us on Instagram">&nbsp;</a>';
   switch ($delta) {
     case 'pum_term_subscription':
       $block['subject'] = t('Subscribe');
@@ -283,8 +289,11 @@ function pum_portal_custom_block_view($delta = '') {
     case 'pum_knowledge_portal':
       $block['content'] = '<img src="/sites/all/themes/pum/images/knowledge_portal.png" />';
       break;
-    case 'socialmedia_icons':
-      $block['content'] = '<div class="socialmedia"><a class="fb" href="https://www.facebook.com/PUM.nl">&nbsp;</a><a class="tw" href="https://twitter.com/pum_nl">&nbsp;</a><a class="li" href="https://www.linkedin.com/company/pum-netherlands-senior-experts">&nbsp;</a><a class="yt" href="https://www.youtube.com/user/PUMSeniorExperts">&nbsp;</a><a class="in" href="https://www.instagram.com/pum_nl/">&nbsp;</a></div>';
+    case 'socialmedia_icons_top':
+      $block['content'] = '<div class="socialmedia_top">'.$social_media_links.'</div>';
+      break;
+    case 'socialmedia_icons_bottom':
+      $block['content'] = '<div class="socialmedia_bottom">'.$social_media_links.'</div>';
       break;
   }
   return $block;
