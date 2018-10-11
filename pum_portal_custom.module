@@ -65,8 +65,53 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
     }
   }
 
-  if ($form_id == "merci_reservation_node_form") {
-	  $form['actions']['submit']['#value'] = t('Submit');
+  $nid_subnewsletter = db_select('node', 'n')
+    ->fields('n',array('nid'))
+    ->condition('title', 'Subscribe to our newsletter','=')
+    ->condition('type', 'webform','=')
+    ->execute()
+    ->fetchField();
+
+  if($form_id == 'webform_client_form_'.$nid_subnewsletter) {
+
+    $form['#submit'][] = '_pum_portal_custom_subscribenewsletter_form_submit';
+  }
+}
+
+/**
+ * _pum_portal_custom_subscribenewsletter_form_submit()
+ *
+ * Function to re-add users if user was removed from mailgroup but wants to subscribe again
+ * The standard webform functionality does not re-add the users if they were removed from the mailing list
+ *
+ * @return void
+ */
+function _pum_portal_custom_subscribenewsletter_form_submit() {
+  $contactId = CRM_Core_Session::singleton()->getLoggedInContactID();
+
+  if(!empty($contactId)) {
+    try{
+      $params_cnl = array(
+        'version' => 3,
+        'sequential' => 1,
+        'title' => 'Corporate newsletter',
+      );
+      $result_cnl = civicrm_api3('Group', 'getsingle', $params_cnl);
+    } catch (CiviCRM_API3_Exception $ex) {
+
+    }
+
+    try{
+      $params = array(
+        'version' => 3,
+        'sequential' => 1,
+        'contact_id' => $contactId,
+        'group_id' => $result_cnl['id'],
+      );
+      $result = civicrm_api3('GroupContact', 'create', $params);
+    } catch (CiviCRM_API3_Exception $ex) {
+
+    }
   }
 }
 
@@ -1037,7 +1082,7 @@ function _pum_portal_custom_get_recent_nodes($type,$days, $usertags) {
 function pum_portal_custom_views_query_alter(&$view, &$query) {
   global $user;
 
-  $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents', 'latest_portal_news');
+  $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents', 'latest_portal_news', 'policies');
 
   if (!empty($user->uid) && in_array($view->name, $viewNamesToRestrict)) {
     /**
@@ -1174,14 +1219,17 @@ function pum_portal_custom_user_view($account, $view_mode) {
   $account = user_load($account->uid);
   $email_pref_getfield = field_get_items('user', $account, 'field_email_preferences');
   $email_pref_getvalues = array();
-  foreach ($email_pref_getfield as $key => $value) {
-    $email_pref_getvalues[] = field_view_value('user', $account, 'field_email_preferences', $email_pref_getfield[$key]);
+  if(is_array($email_pref_getfield)) {
+    foreach ($email_pref_getfield as $key => $value) {
+      $email_pref_getvalues[] = field_view_value('user', $account, 'field_email_preferences', $email_pref_getfield[$key]);
+    }
   }
-
   //Loop through all e-mail preferences and subscribed topics and put a little markup to it
   //This will be shown on the user profile page
-  foreach($email_pref_getvalues as $key => $value) {
-    $email_preferences.= '<dd>'.$value['#markup'].'</dd>';
+  if(is_array($email_pref_getvalues)) {
+    foreach($email_pref_getvalues as $key => $value) {
+      $email_preferences.= '<dd>'.$value['#markup'].'</dd>';
+    }
   }
 
   if (is_array($topics)) {
