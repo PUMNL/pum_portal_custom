@@ -73,7 +73,6 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
     ->fetchField();
 
   if($form_id == 'webform_client_form_'.$nid_subnewsletter) {
-
     $form['#submit'][] = '_pum_portal_custom_subscribenewsletter_form_submit';
   }
 }
@@ -86,31 +85,92 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
  *
  * @return void
  */
-function _pum_portal_custom_subscribenewsletter_form_submit() {
+function _pum_portal_custom_subscribenewsletter_form_submit(&$form, &$form_state) {
   $contactId = CRM_Core_Session::singleton()->getLoggedInContactID();
 
+  //Get Corporate newsletter group
+  try{
+    $params_cnl = array(
+      'version' => 3,
+      'sequential' => 1,
+      'title' => 'Corporate newsletter',
+    );
+    $params_group_newsletter = civicrm_api3('Group', 'getsingle', $params_cnl);
+  } catch (CiviCRM_API3_Exception $ex) {
+
+  }
+
   if(!empty($contactId)) {
+    //User is logged on, use current user
     try{
-      $params_cnl = array(
-        'version' => 3,
-        'sequential' => 1,
-        'title' => 'Corporate newsletter',
-      );
-      $result_cnl = civicrm_api3('Group', 'getsingle', $params_cnl);
-    } catch (CiviCRM_API3_Exception $ex) {
-
-    }
-
-    try{
-      $params = array(
+      $params_add_contact_to_group = array(
         'version' => 3,
         'sequential' => 1,
         'contact_id' => $contactId,
-        'group_id' => $result_cnl['id'],
+        'group_id' => $params_group_newsletter['id'],
       );
-      $result = civicrm_api3('GroupContact', 'create', $params);
+      $result_add_contact_to_group = civicrm_api3('GroupContact', 'create', $params_add_contact_to_group);
     } catch (CiviCRM_API3_Exception $ex) {
 
+    }
+  } else {
+    $isMember = FALSE;
+    $contactId = FALSE;
+    $result_email_contact = '';
+    //User is not logged on, check if user is an existing contact, and if so use that contact, else: create a new contact
+    if(!empty($form_state['input']['submitted']['personal_details']['civicrm_1_contact_1_email_email'])) {
+      $params_email_contact = array(
+        'version' => 3,
+        'sequential' => 1,
+        'email' => $form_state['input']['submitted']['personal_details']['civicrm_1_contact_1_email_email'],
+        'is_primary' => 1,
+      );
+      $result_email_contact = civicrm_api('Email', 'get', $params_email_contact);
+    }
+
+    //I'm aware that there could be multiple contacts with the same e-mailaddress
+    //It always selects the last found contact as this is the most recent contact.
+    //This is because when for example a new contact is added to the organisation this normally will be the new contact person,
+    //while to old contact may have left the organisation, but is still in the system.
+    //This way the new contact will always get the e-mail.
+    if(is_array($result_email_contact['values'])) {
+      foreach($result_email_contact['values'] as $key => $value) {
+        $contactId = $value['contact_id'];
+        try{
+          $params_contact_groups = array(
+            'version' => 3,
+            'sequential' => 1,
+            'contact_id' => $contactId,
+          );
+          $result_contact_groups = civicrm_api('GroupContact', 'get', $params_contact_groups);
+        } catch (CiviCRM_API3_Exception $ex) {
+
+        }
+        if(is_array($result_contact_groups)) {
+          foreach($result_contact_groups['values'] as $key2 => $value2) {
+            if($key2 == 'title' && $value2 == 'Corporate newsletter') {
+              //User is already a member
+              $isMember = TRUE;
+            }
+          }
+        }
+      }
+    }
+
+    //If user is not a member of the Corporate newsletter group add it
+    if($isMember == FALSE && !empty($contactId) && !empty($params_group_newsletter['id'])) {
+      //Add contact to group
+      try{
+        $params = array(
+          'version' => 3,
+          'sequential' => 1,
+          'contact_id' => $contactId,
+          'group_id' => $params_group_newsletter['id'],
+        );
+        $result_add_contact_to_group = civicrm_api3('GroupContact', 'create', $params);
+      } catch (CiviCRM_API3_Exception $ex) {
+
+      }
     }
   }
 }
