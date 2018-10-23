@@ -44,8 +44,104 @@ function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
     $session->pushUserContext($redirectUrl);
   }
 
-  if ($form_id == "merci_reservation_node_form") {
-	  $form['actions']['submit']['#value'] = t('Submit');
+  $nid_subnewsletter = db_select('node', 'n')
+    ->fields('n',array('nid'))
+      ->condition('title', 'Subscribe to our newsletter','=')
+      ->condition('type', 'webform','=')
+      ->execute()
+      ->fetchField();
+  if($form_id == 'webform_client_form_'.$nid_subnewsletter) {
+    $form['#submit'][] = '_pum_portal_custom_subscribenewsletter_form_submit';
+  }
+}
+
+/**
+ * _pum_portal_custom_subscribenewsletter_form_submit()
+ *
+ * Function to re-add users if user was removed from mailgroup but wants to subscribe again
+ * The standard webform functionality does not re-add the users if they were removed from the mailing list
+ *
+ * @return void
+ */
+function _pum_portal_custom_subscribenewsletter_form_submit(&$form, &$form_state) {
+  $contactId = CRM_Core_Session::singleton()->getLoggedInContactID();
+  //Get Corporate newsletter group
+  try{
+    $params_cnl = array(
+      'version' => 3,
+      'sequential' => 1,
+      'title' => 'Corporate newsletter',
+    );
+    $params_group_newsletter = civicrm_api3('Group', 'getsingle', $params_cnl);
+  } catch (CiviCRM_API3_Exception $ex) {
+  }
+  if(!empty($contactId)) {
+    //User is logged on, use current user
+    try{
+      $params_add_contact_to_group = array(
+        'version' => 3,
+        'sequential' => 1,
+        'contact_id' => $contactId,
+        'group_id' => $params_group_newsletter['id'],
+      );
+      $result_add_contact_to_group = civicrm_api3('GroupContact', 'create', $params_add_contact_to_group);
+    } catch (CiviCRM_API3_Exception $ex) {
+    }
+  } else {
+    $isMember = FALSE;
+    $contactId = FALSE;
+    $result_email_contact = '';
+    //User is not logged on, check if user is an existing contact, and if so use that contact, else: create a new contact
+    if(!empty($form_state['input']['submitted']['personal_details']['civicrm_1_contact_1_email_email'])) {
+      $params_email_contact = array(
+        'version' => 3,
+        'sequential' => 1,
+        'email' => $form_state['input']['submitted']['personal_details']['civicrm_1_contact_1_email_email'],
+        'is_primary' => 1,
+      );
+      $result_email_contact = civicrm_api('Email', 'get', $params_email_contact);
+    }
+    //I'm aware that there could be multiple contacts with the same e-mailaddress
+    //It always selects the last found contact as this is the most recent contact.
+    //This is because when for example a new contact is added to the organisation this normally will be the new contact person,
+    //while to old contact may have left the organisation, but is still in the system.
+    //This way the new contact will always get the e-mail.
+    if(is_array($result_email_contact['values'])) {
+      foreach($result_email_contact['values'] as $key => $value) {
+        $contactId = $value['contact_id'];
+        try{
+          $params_contact_groups = array(
+            'version' => 3,
+            'sequential' => 1,
+            'contact_id' => $contactId,
+          );
+          $result_contact_groups = civicrm_api('GroupContact', 'get', $params_contact_groups);
+        } catch (CiviCRM_API3_Exception $ex) {
+        }
+        if(is_array($result_contact_groups)) {
+          foreach($result_contact_groups['values'] as $key2 => $value2) {
+            if($key2 == 'title' && $value2 == 'Corporate newsletter') {
+              //User is already a member
+              $isMember = TRUE;
+            }
+          }
+        }
+      }
+    }
+    //If user is not a member of the Corporate newsletter group add it
+    if($isMember == FALSE && !empty($contactId) && !empty($params_group_newsletter['id'])) {
+      //Add contact to group
+      try{
+        $params = array(
+          'version' => 3,
+          'sequential' => 1,
+          'contact_id' => $contactId,
+          'group_id' => $params_group_newsletter['id'],
+        );
+        $result_add_contact_to_group = civicrm_api3('GroupContact', 'create', $params);
+      } catch (CiviCRM_API3_Exception $ex) {
+      }
+    }
   }
 }
 
@@ -229,8 +325,13 @@ function pum_portal_custom_block_info() {
     'cache' => DRUPAL_CACHE_GLOBAL,
   );
 
-  $blocks['socialmedia_icons'] = array(
-    'info' => t('PUM Social Media Icons'),
+  $blocks['socialmedia_icons_top'] = array(
+    'info' => t('PUM Social Media Icons Top'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  $blocks['socialmedia_icons_bottom'] = array(
+    'info' => t('PUM Social Media Icons Bottom'),
     'cache' => DRUPAL_CACHE_GLOBAL,
   );
 
@@ -242,12 +343,17 @@ function pum_portal_custom_block_info() {
  */
 function pum_portal_custom_block_view($delta = '') {
   $block = array();
+  $social_media_links = '<a class="fb" href="https://www.facebook.com/PUM.nl" target="_blank" title="Join us on Facebook">&nbsp;</a><a class="tw" href="https://twitter.com/pum_nl" target="_blank" title="Follow us on Twitter">&nbsp;</a><a class="li" href="https://www.linkedin.com/company/pum-netherlands-senior-experts" target="_blank" title="Join us on LinkedIn">&nbsp;</a><a class="yt" href="https://www.youtube.com/user/PUMSeniorExperts" target="_blank" title="Watch us on YouTube">&nbsp;</a><a class="in" href="https://www.instagram.com/pum_nl/" target="_blank" title="Follow us on Instagram">&nbsp;</a>';
+
   switch ($delta) {
     case 'pum_knowledge_portal':
       $block['content'] = '<img src="/sites/all/themes/pum/images/knowledge_portal.png" />';
       break;
-    case 'socialmedia_icons':
-      $block['content'] = '<div class="socialmedia"><a class="fb" href="https://www.facebook.com/PUM.nl">&nbsp;</a><a class="tw" href="https://twitter.com/pum_nl">&nbsp;</a><a class="li" href="https://www.linkedin.com/company/pum-netherlands-senior-experts">&nbsp;</a><a class="yt" href="https://www.youtube.com/user/PUMSeniorExperts">&nbsp;</a><a class="in" href="https://www.instagram.com/pum_nl/">&nbsp;</a></div>';
+    case 'socialmedia_icons_top':
+      $block['content'] = '<div class="socialmedia_top">'.$social_media_links.'</div>';
+      break;
+    case 'socialmedia_icons_bottom':
+      $block['content'] = '<div class="socialmedia_bottom">'.$social_media_links.'</div>';
       break;
   }
   return $block;
@@ -401,7 +507,7 @@ function pum_portal_custom_user_presave(&$edit, $account, $category) {
 function pum_portal_custom_views_query_alter(&$view, &$query) {
   global $user;
 
-  $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents', 'latest_portal_news');
+  $viewNamesToRestrict = array('latest_portal_blogs', 'pum_portal_latest_forum_topics', 'latest_portal_documents', 'latest_portal_news', 'policies');
 
   if (!empty($user->uid) && in_array($view->name, $viewNamesToRestrict)) {
     /**
