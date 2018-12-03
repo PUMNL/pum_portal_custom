@@ -579,7 +579,7 @@ function pum_portal_custom_node_access($node, $op, $account) {
   }
 
   $user = user_load($account->uid);
-  if (in_array($nodeType, $restrictedNodeTypes) && is_array($user->field_pum_private['und']) && is_array($node->field_pum_private['und']) && count($node->field_pum_private['und'])) {
+  if (in_array($nodeType, $restrictedNodeTypes) && is_array($user->field_pum_private['und']) && is_array($user->field_pum_private['und']) && !empty($node->field_pum_private['und']) && is_array($node->field_pum_private['und']) && count($node->field_pum_private['und'])) {
     // Check whether the user has access to the private community.
     foreach($node->field_pum_private['und'] as $term) {
       foreach($user->field_pum_private['und'] as $userterm) {
