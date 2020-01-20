@@ -170,6 +170,13 @@ function pum_portal_custom_menu() {
     'page arguments' => array('_pum_sync_settings_form'),
     'access arguments' => array('administer site configuration'),
   );
+  $items['admin/config/pum/portal'] = array(
+    'title' => 'Portal configuration',
+    'description' => 'PUM Portal Configuration Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pum_portal_settings_form'),
+    'access arguments' => array('administer site configuration'),
+  );
   return $items;
 }
 
@@ -203,6 +210,32 @@ function _pum_sync_settings_form_submit($form, &$form_state) {
     $msg .="countries: ".$form_state["values"]["tests_taken"]["countries"];
     _pum_portal_custom_sync_countries(false, $force);
   }
+}
+
+function pum_portal_settings_form($form, &$form_state) {
+  $form['pum_portal_emergency_button_text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Button text for in case of emergency button'),
+    '#description' => t('Enter the text that should appear on the in case of emergency button on the portal'),
+    '#default_value' => variable_get('pum_portal_custom_button_incaseofemergency_text'),
+  );
+  $form['pum_portal_emergency_button_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Button url for in case of emergency button'),
+    '#description' => t('Enter the URL that the in case of emergency button should link to'),
+    '#default_value' => variable_get('pum_portal_custom_button_incaseofemergency_url'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+function pum_portal_settings_form_submit($form, &$form_state) {
+  variable_set('pum_portal_custom_button_incaseofemergency_text', $form_state['values']['pum_portal_emergency_button_text']);
+  variable_set('pum_portal_custom_button_incaseofemergency_url', $form_state['values']['pum_portal_emergency_button_url']);
 }
 
 function _pum_portal_custom_sync_countries($cron = false, $force = false) {
@@ -335,6 +368,11 @@ function pum_portal_custom_block_info() {
     'cache' => DRUPAL_CACHE_GLOBAL,
   );
 
+  $blocks['pum_emergency_button'] = array(
+    'info' => t('PUM Emergency Button'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
   return $blocks;
 }
 
@@ -354,6 +392,14 @@ function pum_portal_custom_block_view($delta = '') {
       break;
     case 'socialmedia_icons_bottom':
       $block['content'] = '<div class="socialmedia_bottom">'.$social_media_links.'</div>';
+      break;
+    case 'pum_emergency_button':
+      $pum_emergency_button_text = variable_get('pum_portal_custom_button_incaseofemergency_text');
+      if(empty($pum_emergency_button_text)) {
+        $pum_emergency_button_text = 'In case of emergency';
+      }
+      $pum_emergency_button_url = variable_get('pum_portal_custom_button_incaseofemergency_url');
+      $block['content'] = '<div class="pum_emergency"><a href="'.$pum_emergency_button_url.'">'.$pum_emergency_button_text.'</a></div>';
       break;
   }
   return $block;
