@@ -8,7 +8,7 @@ function pum_portal_custom_user_logout($account) {
   // Force anonymous user.
   $user = drupal_anonymous_user();
 
-  if(variable_get('pum_portal_custom_environment_active' == TRUE)) {
+  if(variable_get('pum_portal_custom_environment_active') == TRUE) {
     drupal_goto(variable_get('pum_portal_custom_environment').$logout_langcode);
   } else {
     drupal_goto('https://'.$_SERVER['HTTP_HOST']);
