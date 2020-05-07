@@ -3,15 +3,19 @@ function pum_portal_custom_user_logout($account) {
   global $user;
 
   $logout_langcode = $GLOBALS['language']->language;
-  //Destroy the current session, and reset $user to the anonymous user.
-  session_destroy();
-  // Force anonymous user.
-  $user = drupal_anonymous_user();
+  $current_path = current_path();
 
-  if(variable_get('pum_portal_custom_environment_active') == TRUE) {
-    drupal_goto(variable_get('pum_portal_custom_environment').$logout_langcode);
-  } else {
-    drupal_goto('https://'.$_SERVER['HTTP_HOST']);
+  if(empty($_SESSION['masquerading']) && substr($current_path, 0,10) != 'masquerade' && $current_path != 'user/login' && $current_path != 'portal'){
+    //Destroy the current session, and reset $user to the anonymous user.
+    session_destroy();
+    // Force anonymous user.
+    $user = drupal_anonymous_user();
+
+    if(variable_get('pum_portal_custom_environment_active') == TRUE) {
+      drupal_goto(variable_get('pum_portal_custom_environment').$logout_langcode);
+    } else {
+      drupal_goto($base_url);
+    }
   }
 }
 
