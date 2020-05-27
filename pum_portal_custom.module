@@ -5,7 +5,12 @@ function pum_portal_custom_user_logout($account) {
   $logout_langcode = $GLOBALS['language']->language;
   $current_path = current_path();
 
-  if(empty($_SESSION['masquerading']) && substr($current_path, 0,10) != 'masquerade' && $current_path != 'user/login' && $current_path != 'portal'){
+  if(empty($_SESSION['masquerading']) &&
+      substr($current_path, 0,10) != 'masquerade' &&
+      substr($current_path, 0,10) != 'user/login' &&
+      substr($current_path, 0,6) != 'portal' &&
+      substr($current_path, 0,10) != 'user/reset' &&
+      substr($current_path, 0,15) != 'password/change'){
     //Destroy the current session, and reset $user to the anonymous user.
     session_destroy();
     // Force anonymous user.
