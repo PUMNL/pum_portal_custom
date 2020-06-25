@@ -678,3 +678,136 @@ function pum_portal_custom_node_access($node, $op, $account) {
   }
   return NODE_ACCESS_IGNORE;
 }
+
+/**
+ * Implements hook_token_info()
+ *
+ * Tokens for CiviCRM Contact Information
+ *
+ * @example token: [pum_civicrm_contact:first_name]
+ *
+ * @return array $info - array of tokens
+ */
+function pum_portal_custom_token_info() {
+  $info = array();
+  $info['types']['pum_portal_custom'] = array(
+    'name' => t('PUM Portal Custom Tokens'),
+    'description' => t('Tokens for all kind of stuff.'),
+  );
+  $info['tokens']['pum_portal_custom']['civicrm-contact-contact_id'] = array('name' => t('CiviCRM Contact ID'), 'description' => t('Contact ID of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-first_name'] = array('name' => t('CiviCRM Contact First name'), 'description' => t('First name of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-middle_name'] = array('name' => t('CiviCRM Contact Middle name'), 'description' => t('Middle name of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-last_name'] = array('name' => t('CiviCRM Contact Last name'), 'description' => t('Last name of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-display_name'] = array('name' => t('CiviCRM Contact Display name'), 'description' => t('Display name of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-job_title'] = array('name' => t('CiviCRM Contact Job Title'), 'description' => t('Job Title of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-birth_date'] = array('name' => t('CiviCRM Contact Birth Date'), 'description' => t('Birth Date of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-street_address'] = array('name' => t('CiviCRM Contact Street Address'), 'description' => t('Street Address of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-postal_code'] = array('name' => t('CiviCRM Contact Postal Code'), 'description' => t('Postal Code of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-country'] = array('name' => t('CiviCRM Contact Country'), 'description' => t('Country Name of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-country_iso_code'] = array('name' => t('CiviCRM Contact Country ISO Code'), 'description' => t('Country ISO Code of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-phone'] = array('name' => t('CiviCRM Contact Phone'), 'description' => t('Phone Number of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-email'] = array('name' => t('CiviCRM Contact E-mail'), 'description' => t('E-mail address of current CiviCRM Contact'));
+  $info['tokens']['pum_portal_custom']['civicrm-contact-individual_prefix'] = array('name' => t('CiviCRM Contact Individual Prefix'), 'description' => t('Prefix of current CiviCRM Contact'));
+
+  return $info;
+}
+
+/**
+ * Implements hook_tokens()
+ *
+ * Token values for CiviCRM Contact Information
+ *
+ * @param string $type
+ * @param object $tokens
+ * @param array $data
+ * @param array $options
+ *
+ * @return array $tokens - array of token values
+ */
+function pum_portal_custom_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  $result_civi_contact = array();
+  $result_contact_country = array();
+  global $user;
+  civicrm_initialize();
+  try {
+    $params_ufmatch = array(
+      'version' => 3,
+      'sequential' => 1,
+      'uf_id' => $user->uid,
+    );
+    $result_ufmatch = civicrm_api('UFMatch', 'getsingle', $params_ufmatch);
+
+    $params_civi_contact = array(
+      'version' => 3,
+      'sequential' => 1,
+      'id' => $result_ufmatch['contact_id'],
+    );
+    $result_civi_contact = civicrm_api('Contact', 'getsingle', $params_civi_contact);
+
+    $params_contact_country = array(
+      'version' => 3,
+      'sequential' => 1,
+      'id' => $result_civi_contact['country_id'],
+    );
+    $result_contact_country = civicrm_api('Country', 'getsingle', $params_contact_country);
+  } catch (Exception $ex){
+    $result_ufmatch = NULL;
+    $result_civi_contact = NULL;
+    $result_contact_country = NULL;
+  }
+
+  if(!empty($result_civi_contact['contact_id'])){
+    if ($type == 'pum_portal_custom') {
+      // set tokens
+      foreach ($tokens as $name => $original) {
+        switch ($name) {
+          case 'civicrm-contact-contact_id':
+            $replacements[$original] = $result_civi_contact['contact_id'];
+            break;
+          case 'civicrm-contact-first_name':
+            $replacements[$original] = $result_civi_contact['first_name'];
+            break;
+          case 'civicrm-contact-middle_name':
+            $replacements[$original] = $result_civi_contact['middle_name'];
+            break;
+          case 'civicrm-contact-last_name':
+            $replacements[$original] = $result_civi_contact['last_name'];
+            break;
+          case 'civicrm-contact-display_name':
+            $replacements[$original] = $result_civi_contact['display_name'];
+            break;
+          case 'civicrm-contact-job_title':
+            $replacements[$original] = $result_civi_contact['job_title'];
+            break;
+          case 'civicrm-contact-birth_date':
+            $replacements[$original] = $result_civi_contact['birth_date'];
+            break;
+          case 'civicrm-contact-street_address':
+            $replacements[$original] = $result_civi_contact['street_address'];
+            break;
+          case 'civicrm-contact-postal_code':
+            $replacements[$original] = $result_civi_contact['postal_code'];
+            break;
+          case 'civicrm-contact-country':
+            $replacements[$original] = $result_contact_country['name'];
+            break;
+          case 'civicrm-contact-country_iso_code':
+            $replacements[$original] = $result_contact_country['iso_code'];
+            break;
+          case 'civicrm-contact-phone':
+            $replacements[$original] = $result_civi_contact['phone'];
+            break;
+          case 'civicrm-contact-email':
+            $replacements[$original] = $result_civi_contact['email'];
+            break;
+          case 'civicrm-contact-individual_prefix':
+            $replacements[$original] = !empty($result_civi_contact['individual_prefix'])?$result_civi_contact['individual_prefix']:'Mr./Mrs.';
+            break;
+        }
+      }
+
+      return $replacements;
+    }
+  }
+}
