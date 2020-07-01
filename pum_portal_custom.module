@@ -664,13 +664,15 @@ function pum_portal_custom_node_access($node, $op, $account) {
     $node->field_pum_private['und'] = array();
   }
 
-  $user = user_load($account->uid);
-  if (in_array($nodeType, $restrictedNodeTypes) && is_array($user->field_pum_private['und']) && is_array($user->field_pum_private['und']) && !empty($node->field_pum_private['und']) && is_array($node->field_pum_private['und']) && count($node->field_pum_private['und'])) {
-    // Check whether the user has access to the private community.
-    foreach($node->field_pum_private['und'] as $term) {
-      foreach($user->field_pum_private['und'] as $userterm) {
-        if ($term['tid'] == $userterm['tid']) {
-          return NODE_ACCESS_ALLOW;
+  if (in_array($nodeType, $restrictedNodeTypes)){
+    if (is_array($node->field_pum_private['und']) && is_array($user->field_pum_private['und']) && count($node->field_pum_private['und']) > 0) {
+      $user = user_load($account->uid);
+      // Check whether the user has access to the private community.
+      foreach($node->field_pum_private['und'] as $term) {
+        foreach($user->field_pum_private['und'] as $userterm) {
+          if ($term['tid'] == $userterm['tid']) {
+            return NODE_ACCESS_ALLOW;
+          }
         }
       }
     }
