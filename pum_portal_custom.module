@@ -660,18 +660,24 @@ function pum_portal_custom_node_access($node, $op, $account) {
   $nodeType = $node->type;
   $restrictedNodeTypes = array('pum_forum_item', 'pum_portal_document', 'pum_portal_blog', 'pum_portal_news');
 
-  if (!isset($node->field_pum_private['und'])) {
-    $node->field_pum_private['und'] = array();
-  }
-
   if (in_array($nodeType, $restrictedNodeTypes)){
     $user = user_load($account->uid);
-    if (is_array($node->field_pum_private['und']) && is_array($user->field_pum_private['und']) && count($node->field_pum_private['und']) > 0) {
+
+    if (!isset($node->field_pum_private['und'])) {
+      $node->field_pum_private['und'] = array();
+    }
+    if (!isset($user->field_pum_private['und'])) {
+      $user->field_pum_private['und'] = array();
+    }
+
+    if (is_array($node->field_pum_private['und']) && count($node->field_pum_private['und']) > 0) {
       // Check whether the user has access to the private community.
-      foreach($node->field_pum_private['und'] as $term) {
-        foreach($user->field_pum_private['und'] as $userterm) {
-          if ($term['tid'] == $userterm['tid']) {
-            return NODE_ACCESS_ALLOW;
+      if(is_array($user->field_pum_private['und']) && count($user->field_pum_private['und']) > 0) {
+        foreach($node->field_pum_private['und'] as $term) {
+          foreach($user->field_pum_private['und'] as $userterm) {
+            if ($term['tid'] == $userterm['tid']) {
+              return NODE_ACCESS_ALLOW;
+            }
           }
         }
       }
