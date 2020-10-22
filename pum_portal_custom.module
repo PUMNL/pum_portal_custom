@@ -1,25 +1,14 @@
 <?php
-function pum_portal_custom_user_logout($account) {
-  global $user;
-
-  $logout_langcode = $GLOBALS['language']->language;
-  $current_path = current_path();
-
-  if(empty($_SESSION['masquerading']) &&
-      substr($current_path, 0,10) != 'masquerade' &&
-      substr($current_path, 0,10) != 'user/login' &&
-      substr($current_path, 0,6) != 'portal' &&
-      substr($current_path, 0,10) != 'user/reset' &&
-      substr($current_path, 0,15) != 'password/change'){
-    //Destroy the current session, and reset $user to the anonymous user.
-    session_destroy();
-    // Force anonymous user.
-    $user = drupal_anonymous_user();
-
-    if(variable_get('pum_portal_custom_environment_active') == TRUE) {
-      drupal_goto(variable_get('pum_portal_custom_environment').$logout_langcode);
-    } else {
-      drupal_goto($base_url);
+function pum_portal_custom_init(){
+  if(!function_exists('drush_main')){
+    if((user_is_logged_in() == FALSE && $_GET['q'] != 'user' && $_GET['q'] != 'moLogin' && $_GET['q'] != 'mo_login') || user_is_logged_in() == TRUE){
+      if($_GET['q'] == variable_get('site_frontpage', 'node')){
+        $custom_env_active = variable_get('pum_portal_custom_environment_active');
+        $custom_env = variable_get('pum_portal_custom_environment');
+        if($custom_env_active == TRUE){
+          drupal_goto($custom_env);
+        }
+      }
     }
   }
 }
