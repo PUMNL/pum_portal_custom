@@ -747,26 +747,29 @@ function pum_portal_custom_tokens($type, $tokens, array $data = array(), array $
     );
     $result_ufmatch = civicrm_api('UFMatch', 'getsingle', $params_ufmatch);
 
-    $params_civi_contact = array(
-      'version' => 3,
-      'sequential' => 1,
-      'id' => $result_ufmatch['contact_id'],
-    );
-    $result_civi_contact = civicrm_api('Contact', 'getsingle', $params_civi_contact);
-
-    $params_contact_country = array(
-      'version' => 3,
-      'sequential' => 1,
-      'id' => $result_civi_contact['country_id'],
-    );
-    $result_contact_country = civicrm_api('Country', 'getsingle', $params_contact_country);
+    if(!empty($result_ufmatch['contact_id'])) {
+      $params_civi_contact = array(
+        'version' => 3,
+        'sequential' => 1,
+        'id' => $result_ufmatch['contact_id'],
+      );
+      $result_civi_contact = civicrm_api('Contact', 'getsingle', $params_civi_contact);
+    }
+    if(!empty($result_civi_contact['country_id'])) {
+      $params_contact_country = array(
+        'version' => 3,
+        'sequential' => 1,
+        'id' => $result_civi_contact['country_id'],
+      );
+      $result_contact_country = civicrm_api('Country', 'getsingle', $params_contact_country);
+    }
   } catch (Exception $ex){
     $result_ufmatch = NULL;
     $result_civi_contact = NULL;
     $result_contact_country = NULL;
   }
 
-  if(!empty($result_civi_contact['contact_id'])){
+  if(!empty($result_civi_contact['contact_id'])) {
     if ($type == 'pum_portal_custom') {
       // set tokens
       foreach ($tokens as $name => $original) {
