@@ -1,16 +1,35 @@
 <?php
 function pum_portal_custom_init(){
-  if(!function_exists('drush_main')){
-    if((user_is_logged_in() == FALSE && $_GET['q'] != 'user' && $_GET['q'] != 'moLogin' && $_GET['q'] != 'mo_login') || user_is_logged_in() == TRUE){
-      if($_GET['q'] == variable_get('site_frontpage', 'node')){
-        $custom_env_active = variable_get('pum_portal_custom_environment_active');
-        $custom_env = variable_get('pum_portal_custom_environment');
-        if($custom_env_active == TRUE){
-          drupal_goto($custom_env);
+  $php_sapi_name = php_sapi_name();
+
+  if(!empty($_SERVER['REQUEST_URI']) && (strpos($_SERVER['REQUEST_URI'], 'cron.php') == 0) && $_GET['q'] != 'admin/reports/status/run-cron') {
+    if(!empty($php_sapi_name) && ($php_sapi_name != 'cli' || strpos($_SERVER['HTTP_REFERER'],'civicrm/bin/cli.php') == 0)){
+      if((  $_GET['q'] != 'user' &&
+            $_GET['q'] != 'user/login' &&
+            $_GET['q'] != 'moLogin' &&
+            $_GET['q'] != 'mo_login' &&
+            strpos($_GET['q'], 'cron') == 0 &&
+            strpos($_GET['q'], 'js/admin_menu/cache') == 0)
+         ) {
+
+        $current_url = arg(0).'/'.arg(1);
+        $site_frontpage = variable_get('site_frontpage', 'node');
+
+        if($current_url == $site_frontpage){
+          $custom_env_active = variable_get('pum_portal_custom_environment_active');
+          $custom_env = variable_get('pum_portal_custom_environment');
+          if($custom_env_active == TRUE){
+            drupal_goto($custom_env);
+          }
         }
       }
+    } else {
+      //drush_main DOES exists en php_sapi_name IS cli, so do nothing so cron can continue
     }
+  } else {
+    //cron run
   }
+
 }
 
 function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
