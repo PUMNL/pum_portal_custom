@@ -3,7 +3,7 @@ function pum_portal_custom_init(){
   $php_sapi_name = php_sapi_name();
 
   if(!empty($_SERVER['REQUEST_URI']) && (strpos($_SERVER['REQUEST_URI'], 'cron.php') == 0) && $_GET['q'] != 'admin/reports/status/run-cron') {
-    if(!empty($php_sapi_name) && ($php_sapi_name != 'cli' || strpos($_SERVER['HTTP_REFERER'],'civicrm/bin/cli.php') == 0)){
+    if(!empty($php_sapi_name) && $php_sapi_name != 'cli' && (strpos($_SERVER['HTTP_REFERER'],'civicrm/bin/cli.php') == 0)){
       if((  $_GET['q'] != 'user' &&
             $_GET['q'] != 'user/login' &&
             $_GET['q'] != 'moLogin' &&
@@ -29,7 +29,6 @@ function pum_portal_custom_init(){
   } else {
     //cron run
   }
-
 }
 
 function pum_portal_custom_form_alter(&$form, &$form_state, $form_id) {
